@@ -53,7 +53,7 @@ def create_render_scene(scene, clip):
     return sc
 
 
-def export(scene, clip, filepath, frame_range):
+def export_bundler(scene, clip, filepath, frame_range):
     """ Exports a scene in bundler format.
     :param scene: the scene to export
     :param clip: the movieclip with tracking data
@@ -86,12 +86,12 @@ def export(scene, clip, filepath, frame_range):
         cam_constraint.influence = 1
 
         for f in frame_range:
+            # render each movie clip frame to jpeg still
             scene.frame_set(f)
-            # render the undistorted frame to file
-            # Note: ensure compositor is set up to output movieclip frames only (without undistort node)
             filename = '{0:0>4}.jpg'.format(f)
             scene.render.filepath = os.path.join(targetdir, filename)
             bpy.ops.render.render(write_still=True, scene=scene.name)
+
             # get the unique tracks at this frame
             tracks = []
             for track in tracking.tracks:
@@ -99,11 +99,12 @@ def export(scene, clip, filepath, frame_range):
                     tracks.append(track)
                     if track not in active_tracks:
                         active_tracks.append(track)
+
             # get camera transforms for this frame
             cd = scene.camera.data
             R = scene.camera.matrix_world.to_euler('XYZ').to_matrix()
             R.transpose()
-            c = Vector(scene.camera.matrix_world.translation)
+            c = scene.camera.matrix_world.translation.copy()
             t = -1 * R * c
             cameras.append({
                 'filename': filename,
