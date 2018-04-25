@@ -63,7 +63,7 @@ def export_bundler(scene, clip, filepath, frame_range):
     targetdir = os.path.dirname(filepath)
     
     # set up a render scene for movie clip output
-    scene = create_render_scene(scene, clip)
+    export_scene = create_render_scene(scene, clip)
     try:
         # vectors for processing vec2 marker coordinates from (0.0...1.0) bottom left to
         # absolute pixel location relative to frame centre
@@ -88,9 +88,10 @@ def export_bundler(scene, clip, filepath, frame_range):
         for f in frame_range:
             # render each movie clip frame to jpeg still
             scene.frame_set(f)
+            export_scene.frame_set(f)
             filename = '{0:0>4}.jpg'.format(f)
-            scene.render.filepath = os.path.join(targetdir, filename)
-            bpy.ops.render.render(write_still=True, scene=scene.name)
+            export_scene.render.filepath = os.path.join(targetdir, filename)
+            bpy.ops.render.render(write_still=True, scene=export_scene.name)
 
             # get the unique tracks at this frame
             tracks = []
@@ -115,7 +116,7 @@ def export_bundler(scene, clip, filepath, frame_range):
                 'rotation': R,
                 'tracks': tracks,
             })
-        
+
         # write the image list file that corresponds with the camera index in bundle.out
         with open(os.path.join(targetdir, 'list.txt'), 'w+') as f:
             f.writelines(['{}\n'.format(data['filename']) for data in cameras])
@@ -169,5 +170,5 @@ def export_bundler(scene, clip, filepath, frame_range):
         raise ex
     finally:
         # remove the temporary export scene
-        bpy.data.scenes.remove(scene)
+        bpy.data.scenes.remove(export_scene)
     
