@@ -9,12 +9,28 @@ bl_info = {
     "category": "Import-Export",
 }
 
+import platform
 import bpy
 import os
+from bpy.types import AddonPreferences
 from bpy_extras.io_utils import ExportHelper, ImportHelper
 
 from .import_bundler import import_bundler
 from .export_bundler import export_bundler
+from .utils import bundle2pmvs, pmvs
+
+
+class BlundlePreferences(AddonPreferences):
+    bl_idname = __name__
+    platform = bpy.props.StringProperty(
+        name='Platform',
+        description='Path to the binaries for this platform in the format {os}_{arch}',
+        default='{os}_{arch}'.format(os=platform.system().lower(), arch=platform.machine().lower())
+    )
+
+    def draw(self, context):
+        layout = self.layout
+        layout.prop(self, "platform")
 
 
 class ImportBundler(bpy.types.Operator, ImportHelper):
@@ -56,8 +72,10 @@ class ExportMovieClipBundler(bpy.types.Operator, ExportHelper):
     clip = bpy.props.StringProperty(name='Movie Clip', update=clip_updated)
     frame_step = bpy.props.IntProperty(name='Frame Step', description='Number of frames to skip when exporting frames for Bundler', default=1)
     clip_size = bpy.props.StringProperty(name='Size', default='')
-    
-    
+    convert_pmvs = bpy.props.BoolProperty(name='Convert to PMVS', description='Convert bundle.out to PMVS format in subdirectory "pmvs"', default=False)
+    exec_pmvs = bpy.props.BoolProperty(name='Execute PMVS', description='Run PMVS with default settings for dense reconstruction', default=False)
+
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.filepath = 'bundle'
@@ -79,6 +97,12 @@ class ExportMovieClipBundler(bpy.types.Operator, ExportHelper):
         
         row = layout.row(align=True)
         row.prop(self, 'frame_step')
+        
+        row = layout.row(align=True)
+        row.prop(self, 'convert_pmvs')
+        
+        row = layout.row(align=True)
+        row.prop(self, 'exec_pmvs')
 
 
     def execute(self, context):
@@ -86,10 +110,26 @@ class ExportMovieClipBundler(bpy.types.Operator, ExportHelper):
         if self.clip not in bpy.data.movieclips:
             self.report({'ERROR'}, 'No movie clip selected')
             return {'CANCELLED'}
-        
+
         scene = context.scene
         clip = bpy.data.movieclips[self.clip]
         export_bundler(scene, clip, self.filepath, range(scene.frame_start, scene.frame_end + 1, self.frame_step))
+        
+        if self.convert_pmvs or self.exec_pmvs:
+            user_prefs = context.user_preferences
+            addon_prefs = user_prefs.addons[__name__].preferences
+
+            script_file = os.path.realpath(__file__)
+            addon_dir = os.path.dirname(script_file)
+            
+            bin_path = os.path.join(addon_dir, addon_prefs.platform)
+            pmvs_path = os.path.join(os.path.dirname(self.filepath), 'pmvs')
+            if os.path.exists(bin_path):
+                bundle2pmvs(bin_path, self.filepath, pmvs_path)
+            
+            if self.exec_pmvs:
+                pmvs(pmvs_path)
+
         return {'FINISHED'}
 
 
@@ -104,6 +144,7 @@ def menu_func_export(self, context):
 classes = (
     ImportBundler,
     ExportMovieClipBundler,
+    BlundlePreferences,
 )
 
 def register():
