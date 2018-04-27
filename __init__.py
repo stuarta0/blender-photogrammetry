@@ -31,6 +31,7 @@ class BlundlePreferences(AddonPreferences):
     def draw(self, context):
         layout = self.layout
         layout.prop(self, "platform")
+        layout.label(text="Valid platforms are linux_386, windows_386 and windows_amd64")
 
 
 class ImportBundler(bpy.types.Operator, ImportHelper):
@@ -128,7 +129,7 @@ class ExportMovieClipBundler(bpy.types.Operator, ExportHelper):
                 bundle2pmvs(bin_path, self.filepath, pmvs_path)
             
             if self.exec_pmvs:
-                pmvs(pmvs_path)
+                pmvs(bin_path, pmvs_path)
 
         return {'FINISHED'}
 
