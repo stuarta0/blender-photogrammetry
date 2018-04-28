@@ -4,8 +4,8 @@ bl_info = {
     "version": (0, 0, 1),
     "blender": (2, 79, 0),
     "location": "File > Import-Export",
-    "description": "Import-Export Bundler OUT format and associated files for photogrammetry dense reconstruction",
-    "wiki_url": "https://www.github.com/stuarta0/blundle",
+    "description": "Import-Export Bundler OUT format (and associated files) for dense reconstruction using photogrammetry tools",
+    "wiki_url": "https://www.github.com/stuarta0/blender-photogrammetry",
     "category": "Import-Export",
 }
 
@@ -20,18 +20,44 @@ from .export_bundler import export_bundler
 from .utils import bundle2pmvs, pmvs
 
 
+def get_precompiled_bin_path():
+    # https://stackoverflow.com/a/45125525
+    arch = platform.machine().lower()
+    if arch in ['x86_64', 'amd64', ]:
+        arch = '64'
+    else:
+        arch = '32'
+
+    os = platform.system().lower()
+    return '{os}{arch}'.format(os=os, arch=arch)
+
+
 class BlundlePreferences(AddonPreferences):
     bl_idname = __name__
     platform = bpy.props.StringProperty(
         name='Platform',
         description='Path to the binaries for this platform in the format {os}_{arch}',
-        default='{os}_{arch}'.format(os=platform.system().lower(), arch=platform.machine().lower())
+        default=get_precompiled_bin_path()
     )
 
+    # def __init__(self, *args, **kwargs):
+    #     super().__init__(*args, **kwargs)
+    #     print('Platform:', platform.system().lower())
+    #     if platform.system().lower() == 'linux':
+    #         script_file = os.path.realpath(__file__)
+    #         addon_dir = os.path.dirname(script_file)
+    #         print('Attempting to set execute flag on precompiled binaries in:')
+    #         print(addon_dir)
+    #         try:
+    #             for exe in os.listdir(os.path.join(addon_dir, 'linux_386')) + os.listdir(os.path.join(addon_dir, 'linux_amd64')):
+    #                 os.chmod(exe, 0o755)
+    #         except Exception as ex:
+    #             self.report({'INFO'}, 'Unable to set precompiled binaries execute flag.')
+    
     def draw(self, context):
         layout = self.layout
         layout.prop(self, "platform")
-        layout.label(text="Valid platforms are linux_386, windows_386 and windows_amd64")
+        layout.label(text="Valid platforms are linux32, windows32 and windows64. linux64 can be used for 'Convert to PMVS' but not 'Execute PMVS'.")
 
 
 class ImportBundler(bpy.types.Operator, ImportHelper):
