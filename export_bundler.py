@@ -68,8 +68,8 @@ def export_bundler(scene, clip, filepath, frame_range):
         # vectors for processing vec2 marker coordinates from (0.0...1.0) bottom left to
         # absolute pixel location relative to frame centre
         # i.e. list(map(lambda i, j: i * j, list(marker.co - voffset), list(clip_size)))
-        clip_size = Vector((int(scene.render.resolution_x * (scene.render.resolution_percentage / 100)),
-                            int(scene.render.resolution_y * (scene.render.resolution_percentage / 100))))
+        clip_size = Vector((int(export_scene.render.resolution_x * (export_scene.render.resolution_percentage / 100)),
+                            int(export_scene.render.resolution_y * (export_scene.render.resolution_percentage / 100))))
         voffset = Vector((0.5, 0.5))
 
         tracking = clip.tracking  # tracking contains camera info, default tracker settings, stabilisation info, etc
