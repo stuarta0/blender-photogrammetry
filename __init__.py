@@ -39,20 +39,6 @@ class BlundlePreferences(AddonPreferences):
         description='Path to the binaries for this platform in the format {os}_{arch}',
         default=get_precompiled_bin_path()
     )
-
-    # def __init__(self, *args, **kwargs):
-    #     super().__init__(*args, **kwargs)
-    #     print('Platform:', platform.system().lower())
-    #     if platform.system().lower() == 'linux':
-    #         script_file = os.path.realpath(__file__)
-    #         addon_dir = os.path.dirname(script_file)
-    #         print('Attempting to set execute flag on precompiled binaries in:')
-    #         print(addon_dir)
-    #         try:
-    #             for exe in os.listdir(os.path.join(addon_dir, 'linux_386')) + os.listdir(os.path.join(addon_dir, 'linux_amd64')):
-    #                 os.chmod(exe, 0o755)
-    #         except Exception as ex:
-    #             self.report({'INFO'}, 'Unable to set precompiled binaries execute flag.')
     
     def draw(self, context):
         layout = self.layout
@@ -180,6 +166,24 @@ def register():
 
     bpy.types.INFO_MT_file_import.append(menu_func_import)
     bpy.types.INFO_MT_file_export.append(menu_func_export)
+    
+    print('Platform:', platform.system().lower())
+    if platform.system().lower() == 'linux':
+        script_file = os.path.realpath(__file__)
+        addon_dir = os.path.dirname(script_file)
+        print('Attempting to set execute flag on precompiled binaries in:')
+        print(addon_dir)
+
+        def set_execute(dirname):
+            for f in os.listdir(dirname):
+                os.chmod(os.path.join(dirname, f), 0o755)
+
+        try:
+            for dirname in ['linux32', 'linux64']:
+                set_execute(os.path.join(addon_dir, dirname))
+        except Exception as ex:
+            print('Unable to set precompiled binaries execute flag.')
+            print(ex)
     
     
 def unregister():

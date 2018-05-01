@@ -4,7 +4,7 @@ Blender importer/exporter for Bundler file format to allow dense point cloud rec
 
 After tracking and solving a clip in Blender, use this addon to export the data to the Bundler file format. This format can be used in a number of photogrammetry tools to rebuild a dense point cloud. After dense point cloud reconstruction (and optional meshing), the resultant model can be reimported into the tracking scene in place.
 
-The current implementation has been tested with PMVS on Windows as follows:
+The current implementation has been tested with PMVS on 64-bit Windows 10 and 64-bit Ubuntu 17.10 as follows:
 
 * Track and solve a movie clip
 * Export Bundler .out file (exports bundle.out, list.txt and all associated movie clip frames in JPG format up to 3000px on the largest axis; see PMVS documentation)
@@ -15,9 +15,17 @@ The current implementation has been tested with PMVS on Windows as follows:
 
 ### 'Convert to PMVS' and 'Execute PMVS' caveats
 
-Precompiled binaries for Bundler and PMVS are provided for Linux 32, and Windows 32 & 64 to allow running the reconstruction pipeline. Linux 64 works with "Convert to PMVS" but not "Execute PMVS". If you're using a different platform or architecture, "Convert to PMVS" and "Execute PMVS" will be unavailable via the addon.
+Precompiled binaries for Bundler and PMVS are provided for Linux 32 & 64, and Windows 32 & 64 to allow running the reconstruction pipeline. If you're using a different platform or architecture, "Convert to PMVS" and "Execute PMVS" will be unavailable via the addon.
 
-To get Linux 64 (and probably 32) working you'll have to install libgfortran3 and possibly liblapack3. You'll also need to set the execute flag for the precompiled binaries in the addon folder. Navigate to a folder path similar to: ```~/.config/blender/2.79/scripts/addons/blender-photogrammetry-master/linux64/``` followed by ```chmod 755 *```
+To get Linux 64 (and probably 32) working you'll have to install libgfortran3 and possibly liblapack3. You'll also need to set the LD_LIBRARY_PATH environment variable so PMVS can find it's shared libraries as follows (changing paths to suit your system):
+
+```
+LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:~/.config/blender/2.79/scripts/addons/blender-photogrammetry-master/linux64
+export LD_LIBRARY_PATH
+./blender
+```
+
+i.e. ```libgfortran.so.*``` should exist in ```/usr/lib/x86_64-linux-gnu``` and the rest can be found in the addons dir (change to suit your addons path).
 
 ## Sources
 

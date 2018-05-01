@@ -54,12 +54,10 @@ def bundle2pmvs(bin_path, bundle_path, target_dir):
     with open(os.path.join(target_dir, 'pmvs_options.txt'), 'w') as f:
         f.writelines(lines)
 
-    # bin\mvs\cmvs.exe .\
-    # bin\mvs\genOption.exe .\
-    # bin\mvs\pmvs2.exe .\ option-0000
-
 
 def pmvs(bin_path, project_path):
+    # if linux, set:
+    # LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:bin_path && export LD_LIBRARY_PATH
     print('pmvs({})'.format(project_path))
     os.chdir(project_path)
 
