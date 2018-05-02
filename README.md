@@ -17,16 +17,6 @@ The current implementation has been tested with PMVS on 64-bit Windows 10 and 64
 
 Precompiled binaries for Bundler and PMVS are provided for Linux 32 & 64, and Windows 32 & 64 to allow running the reconstruction pipeline. If you're using a different platform or architecture, "Convert to PMVS" and "Execute PMVS" will be unavailable via the addon.
 
-To get Linux 64 (and probably 32) working you'll have to install libgfortran3 and possibly liblapack3. You'll also need to set the LD_LIBRARY_PATH environment variable so PMVS can find it's shared libraries as follows (changing paths to suit your system):
-
-```
-LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:~/.config/blender/2.79/scripts/addons/blender-photogrammetry-master/linux64
-export LD_LIBRARY_PATH
-./blender
-```
-
-i.e. ```libgfortran.so.*``` should exist in ```/usr/lib/x86_64-linux-gnu``` and the rest can be found in the addons dir (change to suit your addons path).
-
 ## Sources
 
 ### Bundler

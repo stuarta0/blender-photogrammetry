@@ -43,7 +43,7 @@ class BlundlePreferences(AddonPreferences):
     def draw(self, context):
         layout = self.layout
         layout.prop(self, "platform")
-        layout.label(text="Valid platforms are linux32, windows32 and windows64. linux64 can be used for 'Convert to PMVS' but not 'Execute PMVS'.")
+        layout.label(text="Valid platforms are linux32, linux64, windows32 and windows64.")
 
 
 class ImportBundler(bpy.types.Operator, ImportHelper):
