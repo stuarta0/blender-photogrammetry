@@ -56,7 +56,8 @@ class ImportBundler(bpy.types.Operator, ImportHelper):
 
     def execute(self, context):
         bundle_path = self.filepath
-        list_path = os.path.join(os.path.dirname(self.filepath), 'list.txt')
+        name = '.'.join(['list',] + os.path.basename(bundle_path).split('.')[1:-1] + ['txt', ])
+        list_path = os.path.join(os.path.dirname(self.filepath), name)
 
         if not (os.path.exists(bundle_path) and os.path.exists(list_path)):
             self.report({'ERROR'}, 'The bundler .out file must exist with an associated list.txt in the same directory')

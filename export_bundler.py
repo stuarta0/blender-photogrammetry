@@ -79,7 +79,7 @@ def export_bundler(scene, clip, filepath, frame_range):
 
         # get the global transform for the camera without camera constraint to 
         # project the tracked points bundle into world space
-        scene.frame_set(1)
+        scene.frame_set(scene.frame_start)
         cam_constraint = scene.camera.constraints[0]
         cam_constraint.influence = 0
         mw = scene.camera.matrix_world.copy()
