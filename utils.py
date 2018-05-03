@@ -1,10 +1,11 @@
 import os
+import re
 import subprocess
 import shutil
 import platform
 
 
-def bundle2pmvs(bin_path, bundle_path, target_dir):
+def bundle2pmvs(bin_path, bundle_path, target_dir, pmvs_options):
     print('bundle2pmvs({}, {}, {})'.format(bin_path, bundle_path, target_dir))
     ext = '.exe' if platform.system().lower() == 'windows' else ''
     
@@ -45,24 +46,29 @@ def bundle2pmvs(bin_path, bundle_path, target_dir):
         f.writelines([('visualize\\' + int_format + '.jpg\n').format(i) for i, data in enumerate(images)])
 
     # rewrite pmvs_options.txt to skip vis.dat as we won't be using cmvs here
+    pmvs_options.update({'useVisData': 0})
+    pattern = re.compile(r'^([^\s]+)\s')
     with open(os.path.join(target_dir, 'pmvs_options.txt'), 'r') as f:
         lines = f.readlines()
         for i, line in enumerate(lines):
-            if line.startswith('useVisData'):
-                lines[i] = 'useVisData 0\n'
+            match = pattern.search(line)
+            if match and match.group(1) in pmvs_options:
+                lines[i] = '{key} {value}\n'.format(key=match.group(1), value=pmvs_options[match.group(1)])
     
-    with open(os.path.join(target_dir, 'pmvs_options.txt'), 'w') as f:
+    options = os.path.join(target_dir, 'reconstruction')
+    with open(options, 'w+') as f:
         f.writelines(lines)
+    return options
 
 
-def pmvs(bin_path, project_path):
+def pmvs(bin_path, option_path):
     # if linux, set:
     # LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:bin_path && export LD_LIBRARY_PATH
-    print('pmvs({})'.format(project_path))
-    os.chdir(project_path)
+    print('pmvs({})'.format(option_path))
+    os.chdir(os.path.dirname(option_path))
 
     ext = '.exe' if platform.system().lower() == 'windows' else ''
-    subprocess.call([os.path.join(bin_path, 'pmvs2{}'.format(ext)), '.{}'.format(os.sep), 'pmvs_options.txt', ])
+    subprocess.call([os.path.join(bin_path, 'pmvs2{}'.format(ext)), '.{}'.format(os.sep), os.path.basename(option_path), ])
 
 
 def prepare():

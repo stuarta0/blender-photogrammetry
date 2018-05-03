@@ -12,6 +12,11 @@ bl_info = {
 import platform
 import bpy
 import os
+from bpy.props import (StringProperty,
+                       BoolProperty,
+                       IntProperty,
+                       FloatProperty,
+                       EnumProperty,)
 from bpy.types import AddonPreferences
 from bpy_extras.io_utils import ExportHelper, ImportHelper
 
@@ -34,7 +39,7 @@ def get_precompiled_bin_path():
 
 class BlundlePreferences(AddonPreferences):
     bl_idname = __name__
-    platform = bpy.props.StringProperty(
+    platform = StringProperty(
         name='Platform',
         description='Path to the binaries for this platform in the format {os}_{arch}',
         default=get_precompiled_bin_path()
@@ -52,7 +57,7 @@ class ImportBundler(bpy.types.Operator, ImportHelper):
     bl_label = "Bundler (.out)"
     
     filename_ext = '.out'
-    filter_glob = bpy.props.StringProperty(default='*.out', options={'HIDDEN'})
+    filter_glob = StringProperty(default='*.out', options={'HIDDEN'})
 
     def execute(self, context):
         bundle_path = self.filepath
@@ -76,18 +81,41 @@ def clip_updated(self, context):
         self['clip_size'] = ''
 
 
+def convert_updated(self, context):
+    if not self.convert_pmvs:
+        self.exec_pmvs = False
+
+
+def execute_updated(self, context):
+    if self.exec_pmvs:
+        self.convert_pmvs = True
+
+
 class ExportMovieClipBundler(bpy.types.Operator, ExportHelper):
     """Export a movie clip's tracking data to bundler *.out format"""
     bl_idname = "export.bundler"
     bl_label = "Bundler (.out)"
     
     filename_ext = '.out'
-    filter_glob = bpy.props.StringProperty(default='*.out', options={'HIDDEN'})
-    clip = bpy.props.StringProperty(name='Movie Clip', update=clip_updated)
-    frame_step = bpy.props.IntProperty(name='Frame Step', description='Number of frames to skip when exporting frames for Bundler', default=1)
-    clip_size = bpy.props.StringProperty(name='Size', default='')
-    convert_pmvs = bpy.props.BoolProperty(name='Convert to PMVS', description='Convert bundle.out to PMVS format in subdirectory "pmvs"', default=False)
-    exec_pmvs = bpy.props.BoolProperty(name='Execute PMVS', description='Run PMVS with default settings for dense reconstruction', default=False)
+    filter_glob = StringProperty(default='*.out', options={'HIDDEN'})
+    clip = StringProperty(name='Movie Clip', update=clip_updated)
+    frame_step = IntProperty(name='Frame Step', description='Number of frames to skip when exporting frames for Bundler', default=1)
+    clip_size = StringProperty(name='Size', default='')
+    convert_pmvs = BoolProperty(name='Convert to PMVS', update=convert_updated, description='Convert bundle.out to PMVS format in subdirectory "pmvs"', default=False)
+    exec_pmvs = BoolProperty(name='Execute PMVS', update=execute_updated, description='Run PMVS with default settings for dense reconstruction', default=False)
+
+    pmvs_level = IntProperty(name='Level', default=1, description='When level is 0, original (full) resolution images are used. When level is 1, images are halved (or 4 times less pixels). And so on.')
+    pmvs_csize = IntProperty(name='Cell Size', default=2, description='Controls the density of reconstructions. increasing the value of cell size leads to sparser reconstructions.')
+    pmvs_threshold = FloatProperty(name='Threshold', default=0.7, description='A patch reconstruction is accepted as a success and kept, if its associcated photometric consistency measure is above this threshold. The software repeats three iterations of the reconstruction pipeline, and this threshold is relaxed (decreased) by 0.05 at the end of each iteration.')
+    pmvs_wsize = IntProperty(name='Window Size', default=7, description='The software samples wsize x wsize pixel colors from each image to compute photometric consistency score.  Increasing the value leads to more stable reconstructions, but the program becomes slower.')
+    pmvs_minImageNum = IntProperty(name='Min Image Num', default=3, description='Each 3D point must be visible in at least this many images to be reconstructed. If images are poor quality, increase this value.')
+    #CPU 8
+    #setEdge 0
+    #useBound 0
+    #useVisData 0
+    #sequence -1
+    #timages -1 0 3
+    #oimages -3
 
 
     def __init__(self, *args, **kwargs):
@@ -118,6 +146,14 @@ class ExportMovieClipBundler(bpy.types.Operator, ExportHelper):
         row = layout.row(align=True)
         row.prop(self, 'exec_pmvs')
 
+        if self.convert_pmvs:
+            layout.label(text='PMVS Options:')
+            layout.prop(self, 'pmvs_level')
+            layout.prop(self, 'pmvs_csize')
+            layout.prop(self, 'pmvs_threshold')
+            layout.prop(self, 'pmvs_wsize')
+            layout.prop(self, 'pmvs_minImageNum')
+
 
     def execute(self, context):
         # with ProgressReport(context.window_manager) as progress:
@@ -139,10 +175,17 @@ class ExportMovieClipBundler(bpy.types.Operator, ExportHelper):
             bin_path = os.path.join(addon_dir, addon_prefs.platform)
             pmvs_path = os.path.join(os.path.dirname(self.filepath), 'pmvs')
             if os.path.exists(bin_path):
-                bundle2pmvs(bin_path, self.filepath, pmvs_path)
+                pmvs_options = {
+                    'level': self.pmvs_level,
+                    'csize': self.pmvs_csize,
+                    'threshold': self.pmvs_threshold,
+                    'wsize': self.pmvs_wsize,
+                    'minImageNum': self.pmvs_minImageNum
+                }
+                option_path = bundle2pmvs(bin_path, self.filepath, pmvs_path, pmvs_options)
             
-            if self.exec_pmvs:
-                pmvs(bin_path, pmvs_path)
+                if self.exec_pmvs:
+                    pmvs(bin_path, option_path)
 
         return {'FINISHED'}
 

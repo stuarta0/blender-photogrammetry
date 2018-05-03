@@ -10,8 +10,6 @@ def import_bundler(bundle_path, list_path, scene):
     :param list_path: the target list.txt file
     :param scene: the scene to import into
     """
-    # TODO: read list.txt to get image paths to detect image size
-    
     with open(list_path, 'r') as f:
         imagepath = f.readline().strip()
     img = bpy.data.images.load(os.path.join(os.path.dirname(list_path), imagepath))
