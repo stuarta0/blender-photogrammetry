@@ -17,6 +17,16 @@ The current implementation has been tested with PMVS on 64-bit Windows 10 and 64
 
 Precompiled binaries for Bundler and PMVS are provided for Linux 32 & 64, and Windows 32 & 64 to allow running the reconstruction pipeline. If you're using a different platform or architecture, "Convert to PMVS" and "Execute PMVS" will be unavailable via the addon.
 
+### Debugging
+
+To examine the output of a bundler file (to verify the 2D points for each image), run the following from the Python console:
+
+```python
+bpy.ops.debug.bundler_svg('INVOKE_DEFAULT')
+```
+
+This will open a file select screen where you can choose the bundle.out file. A new directory will be created named ```debug``` with SVGs for each image and it's associated points in 2D space.
+
 ## Sources
 
 ### Bundler

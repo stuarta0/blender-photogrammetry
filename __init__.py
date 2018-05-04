@@ -22,7 +22,7 @@ from bpy_extras.io_utils import ExportHelper, ImportHelper
 
 from .import_bundler import import_bundler
 from .export_bundler import export_bundler
-from .utils import bundle2pmvs, pmvs
+from .utils import listpath_from_bundle, bundle2pmvs, pmvs, create_debug_svg
 
 
 def get_precompiled_bin_path():
@@ -61,8 +61,7 @@ class ImportBundler(bpy.types.Operator, ImportHelper):
 
     def execute(self, context):
         bundle_path = self.filepath
-        name = '.'.join(['list',] + os.path.basename(bundle_path).split('.')[1:-1] + ['txt', ])
-        list_path = os.path.join(os.path.dirname(self.filepath), name)
+        list_path = listpath_from_bundle(bundle_path)
 
         if not (os.path.exists(bundle_path) and os.path.exists(list_path)):
             self.report({'ERROR'}, 'The bundler .out file must exist with an associated list.txt in the same directory')
@@ -117,12 +116,10 @@ class ExportMovieClipBundler(bpy.types.Operator, ExportHelper):
     #timages -1 0 3
     #oimages -3
 
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.filepath = 'bundle'
         self.clip = bpy.context.scene.active_clip.name if bpy.context.scene.active_clip else ''
-    
     
     def draw(self, context):
         # if not self.clip and context.scene.active_clip:
@@ -153,7 +150,6 @@ class ExportMovieClipBundler(bpy.types.Operator, ExportHelper):
             layout.prop(self, 'pmvs_threshold')
             layout.prop(self, 'pmvs_wsize')
             layout.prop(self, 'pmvs_minImageNum')
-
 
     def execute(self, context):
         # with ProgressReport(context.window_manager) as progress:
@@ -190,6 +186,21 @@ class ExportMovieClipBundler(bpy.types.Operator, ExportHelper):
         return {'FINISHED'}
 
 
+class DebugSvg(bpy.types.Operator):
+    bl_idname = 'debug.bundler_svg'
+    bl_label = 'Create debug SVGs for bundle file'
+    
+    filepath = bpy.props.StringProperty(subtype="FILE_PATH")
+
+    def execute(self, context):
+        create_debug_svg(bpy, self.filepath)
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+
+
 def menu_func_import(self, context):
     self.layout.operator(ImportBundler.bl_idname)
 
@@ -202,7 +213,9 @@ classes = (
     ImportBundler,
     ExportMovieClipBundler,
     BlundlePreferences,
+    DebugSvg,
 )
+
 
 def register():
     for cls in classes:
@@ -211,11 +224,11 @@ def register():
     bpy.types.INFO_MT_file_import.append(menu_func_import)
     bpy.types.INFO_MT_file_export.append(menu_func_export)
     
-    print('Platform:', platform.system().lower())
+    print('[blender-photogrammetry] Platform:', platform.system().lower())
     if platform.system().lower() == 'linux':
         script_file = os.path.realpath(__file__)
         addon_dir = os.path.dirname(script_file)
-        print('Attempting to set execute flag on precompiled binaries in:')
+        print('[blender-photogrammetry] Attempting to set execute flag on precompiled binaries in:')
         print(addon_dir)
 
         def set_execute(dirname):

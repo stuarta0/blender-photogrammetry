@@ -5,6 +5,11 @@ import shutil
 import platform
 
 
+def listpath_from_bundle(bundle_path):
+    name = '.'.join(['list',] + os.path.basename(bundle_path).split('.')[1:-1] + ['txt', ])
+    return os.path.join(os.path.dirname(bundle_path), name)
+
+
 def bundle2pmvs(bin_path, bundle_path, target_dir, pmvs_options):
     print('bundle2pmvs({}, {}, {})'.format(bin_path, bundle_path, target_dir))
     ext = '.exe' if platform.system().lower() == 'windows' else ''
@@ -69,6 +74,40 @@ def pmvs(bin_path, option_path):
 
     ext = '.exe' if platform.system().lower() == 'windows' else ''
     subprocess.call([os.path.join(bin_path, 'pmvs2{}'.format(ext)), '.{}'.format(os.sep), os.path.basename(option_path), ])
+
+
+def create_debug_svg(bpy_module, bundle_path):
+    list_path = listpath_from_bundle(bundle_path)
+    with open(list_path, 'r') as f:
+        images = [{'filename': os.path.join(os.path.dirname(list_path), imagepath.strip()), 'points': []} for imagepath in f.readlines()]
+    img = bpy_module.data.images.load(images[0]['filename'])
+    width, height = img.size
+
+    with open(bundle_path, 'r') as f:
+        lines = f.readlines()
+
+    total_cameras, total_points = map(int, lines[1].split())
+    for i in range(total_points):
+        # each point uses 3 lines (3d point, rgb, view list)
+        idx = 2 + total_cameras * 5 + i * 3
+        view_list = lines[idx + 2].split()
+        length = int(view_list[0])
+        for p in range(length):
+            # <camera> <sift> <x> <y>
+            pdx = 1 + p * 4
+            images[int(view_list[pdx])]['points'].append((float(view_list[pdx + 2]), float(view_list[pdx + 3])))
+    
+    debug_path = os.path.join(os.path.dirname(bundle_path), 'debug')
+    if not os.path.exists(debug_path):
+        os.mkdir(debug_path)
+
+    for image in images:
+        points = ['<circle cx="{x}" cy="{y}" r="5" fill="none" stroke="#f00" stroke-width="1"/>'.format(x=p[0]+width/2, y=height/2-p[1]) for p in image['points']]
+        with open(os.path.join(debug_path, os.path.splitext(os.path.basename(image['filename']))[0] + '.svg'), 'w+') as svg:
+            svg.write('''<svg width="{width}" height="{height}" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <image xlink:href="{filename}"/>
+    {points}
+</svg>'''.format(filename=image['filename'], width=width, height=height, points='\n\t'.join(points)))
 
 
 def prepare():
