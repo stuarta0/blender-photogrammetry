@@ -4,7 +4,7 @@ bl_info = {
     "version": (0, 0, 1),
     "blender": (2, 79, 0),
     "location": "Properties > Scene",
-    "description": "Provides the ability to process data in various photogrammetry tools, including blender's camera tracker output",
+    "description": "Provides the ability to process data in various photogrammetry tools, including blender's motion tracking output",
     "wiki_url": "https://www.github.com/stuarta0/blender-photogrammetry",
     "category": "Motion Tracking",
 }
@@ -13,77 +13,111 @@ import platform
 import os
 
 import bpy
-from bpy.props import PointerProperty, IntProperty, FloatProperty, StringProperty, EnumProperty
-from bpy.types import AddonPreferences, PropertyGroup
+from bpy.props import PointerProperty, IntProperty, FloatProperty, StringProperty, EnumProperty, BoolProperty
+from bpy.types import AddonPreferences, PropertyGroup, Operator
 from bpy_extras.io_utils import ExportHelper, ImportHelper
 
-#from .export_colmap import export_colmap
-#from .utils import run_colmap
+from .blender.groups import Input_BlenderPropertyGroup
+from .blender.extract import extract as extract_blender
+
+from .bundler.groups import BundlerPropertyGroup
+from .bundler.load import load as load_bundler
+
+from .imagemodeler.groups import ImageModelerPropertyGroup
+from .imagemodeler.extract import extract as extract_imagemodeler
+
+from .pmvs.groups import PMVSPropertyGroup
+from .pmvs.load import load as load_pmvs
 
 
 class PhotogrammetryPreferences(AddonPreferences):
     bl_idname = __name__
     platform = StringProperty(
         name='Platform',
-        description='Path to the binaries for this platform in the format {os}{bitness}',
+        description='Path to the binaries for this platform in the format {os}',
         default=platform.system().lower()
     )
     
     def draw(self, context):
         layout = self.layout
         layout.prop(self, "platform")
-        layout.label(text="Valid platforms are linux32, linux64, windows32 and windows64.")
+        layout.label(text="Valid platforms are 'linux' or 'windows'.")
+
+
+class ProcessPhotogrammetryOperator(bpy.types.Operator):
+    bl_idname = "photogrammetry.process"
+    bl_label = "Process photogrammetry from current scene settings"
+
+    # def execute(self, context):
+    #     # with ProgressReport(context.window_manager) as progress:
+    #     if self.clip not in bpy.data.movieclips:
+    #         self.report({'ERROR'}, 'No movie clip selected')
+    #         return {'CANCELLED'}
+
+    #     scene = context.scene
+    #     clip = bpy.data.movieclips[self.clip]
+    #     export_colmap(scene, clip, self.filepath, range(scene.frame_start, scene.frame_end + 1, self.frame_step))
+        
+    #     if self.exec_colmap:
+    #         user_prefs = context.user_preferences
+    #         addon_prefs = user_prefs.addons[__name__].preferences
+
+    #         script_file = os.path.realpath(__file__)
+    #         addon_dir = os.path.dirname(script_file)
+            
+    #         bin_path = os.path.join(addon_dir, addon_prefs.platform)
+    #         if os.path.exists(bin_path):
+    #             run_colmap(bin_path, self.filepath)
+
+    #     return {'FINISHED'}
+
+    def execute(self, context):
+        scene = context.scene
+        p = scene.photogrammetry
+        
+        print('process photogrammetry')
+        print(p.input)
+        print(p.output)
+        extract = getattr(p, p.input)
+        load = getattr(p, p.output)
+
+        from pprint import pprint
+        data = None
+        if p.input == 'in_blender':
+            clip = bpy.data.movieclips[extract.clip]
+            data = extract_blender(scene, clip, bpy.path.abspath(load.dirpath),
+                                   range(scene.frame_start, scene.frame_end + 1, extract.frame_step))
+        elif p.input == 'in_rzi':
+            data = extract_imagemodeler(bpy.path.abspath(extract.filepath), bpy.path.abspath(extract.imagepath))
+        pprint(data)
+
+        if p.output == 'pmvs':
+            load_pmvs(data, load.dirpath)
+
+        return{'FINISHED'}    
 
 
 # https://hamaluik.com/posts/dynamic-blender-properties/
-class PMVSPropertyGroup(PropertyGroup):
-    level = IntProperty(name='Level', default=1, min=0, description='When level is 0, original (full) resolution images are used. When level is 1, images are halved (or 4 times less pixels). And so on')
-    csize = IntProperty(name='Cell Size', default=2, min=1, description='Controls the density of reconstructions. increasing the value of cell size leads to sparser reconstructions')
-    threshold = FloatProperty(name='Threshold', default=0.7, min=0.15, description='A patch reconstruction is accepted as a success and kept, if its associcated photometric consistency measure is above this threshold. The software repeats three iterations of the reconstruction pipeline, and this threshold is relaxed (decreased) by 0.05 at the end of each iteration')
-    wsize = IntProperty(name='Window Size', default=7, min=1, description='The software samples wsize x wsize pixel colors from each image to compute photometric consistency score.  Increasing the value leads to more stable reconstructions, but the program becomes slower')
-    minImageNum = IntProperty(name='Min Image Num', default=3, min=2, description='Each 3D point must be visible in at least this many images to be reconstructed. If images are poor quality, increase this value')
-    
-    def draw(self, layout):
-        layout.prop(self, 'level')
-        layout.prop(self, 'csize')
-        layout.prop(self, 'threshold')
-        layout.prop(self, 'wsize')
-        layout.prop(self, 'minImageNum')
-
-
-class BundlerPropertyGroup(PropertyGroup):
-    filename = StringProperty(name='Bundle .out file')
-    
-    def draw(self, layout):
-        layout.prop(self, 'filename')
-
-
-class BlenderPropertyGroup(PropertyGroup):
-    clip = StringProperty(name='Movie Clip')
-    frame_step = IntProperty(name='Frame Step', description='Number of frames to skip when exporting', default=1)
-    
-    def draw(self, layout):
-        layout.prop_search(self, 'clip', bpy.data, 'movieclips')
-        layout.prop(self, 'frame_step')
-
-
 class PhotogrammetryPropertyGroup(PropertyGroup):
     input = EnumProperty(name='From', items=(
-                            ('in_blender', 'Blender', 'Use camera tracking data from current scene'),
+                            ('in_blender', 'Blender Motion Tracking', 'Use tracking data from current scene'),
                             ('in_bundler', 'Bundler', 'Read a Bundler OUT file'),
                             ('in_rzi', 'ImageModeler', 'Read an ImageModeler RZI file'),
                         ), default='in_blender')
-    in_blender = PointerProperty(type=BlenderPropertyGroup)
+    in_blender = PointerProperty(type=Input_BlenderPropertyGroup)
     in_bundler = PointerProperty(type=BundlerPropertyGroup)
+    in_rzi = PointerProperty(type=ImageModelerPropertyGroup)
                         
     output = EnumProperty(name='To', items=(
                              ('out_blender', 'Blender', 'Import data into current scene'),
                              ('out_bundler', 'Bundler', 'Output images and bundle.out'),
                              ('out_pmvs', 'PMVS', 'Use PMVS2 to generate a dense point cloud'),
-                             ('out_colmap', 'COLMAP', 'Use COLMAP to generate a dense point cloud and mesh'),
+                             ('out_colmap', 'COLMAP', 'Use COLMAP to generate a dense point cloud and reconstructed mesh'),
                          ), default='out_pmvs')
     out_bundler = PointerProperty(type=BundlerPropertyGroup)
     out_pmvs = PointerProperty(type=PMVSPropertyGroup)
+
+    import_result = BoolProperty(name='Automatically import reconstruction', default=False)
     
     def draw(self, layout):
         layout.prop(self, 'input')
@@ -100,10 +134,12 @@ class PhotogrammetryPropertyGroup(PropertyGroup):
             layout.label(text='No options')
             
         layout.separator()
-        # layout.operator("photogrammetry.process")
+        layout.operator("photogrammetry.process", text='Process')
+        layout.prop(self, 'import_result')
+
 
 class PhotogrammetryPanel(bpy.types.Panel):
-    bl_idname = "export.photogrammetry"
+    bl_idname = "photogrammetry.settings"
     bl_label = "Photogrammetry Tools"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
@@ -116,36 +152,15 @@ class PhotogrammetryPanel(bpy.types.Panel):
 
 
 classes = (
-    BlenderPropertyGroup,
+    Input_BlenderPropertyGroup,
     BundlerPropertyGroup,
     PMVSPropertyGroup,
+    ImageModelerPropertyGroup,
     PhotogrammetryPropertyGroup,
     PhotogrammetryPanel,
+    ProcessPhotogrammetryOperator,
 )
- 
 
-# def execute(self, context):
-#     # with ProgressReport(context.window_manager) as progress:
-#     if self.clip not in bpy.data.movieclips:
-#         self.report({'ERROR'}, 'No movie clip selected')
-#         return {'CANCELLED'}
-
-#     scene = context.scene
-#     clip = bpy.data.movieclips[self.clip]
-#     export_colmap(scene, clip, self.filepath, range(scene.frame_start, scene.frame_end + 1, self.frame_step))
-    
-#     if self.exec_colmap:
-#         user_prefs = context.user_preferences
-#         addon_prefs = user_prefs.addons[__name__].preferences
-
-#         script_file = os.path.realpath(__file__)
-#         addon_dir = os.path.dirname(script_file)
-        
-#         bin_path = os.path.join(addon_dir, addon_prefs.platform)
-#         if os.path.exists(bin_path):
-#             run_colmap(bin_path, self.filepath)
-
-#     return {'FINISHED'}
 
 def register():
     for cls in classes:
