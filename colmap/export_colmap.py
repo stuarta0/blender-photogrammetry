@@ -62,6 +62,10 @@ def export_colmap(scene, clip, filepath, frame_range):
     :param filepath: the target filepath
     :param frame_range: a list of integers representing which frames to export
     """
+    # TODO: COLMAP dense reconstruction unavailable without CUDA GPU
+    # https://colmap.github.io/faq.html#available-functionality-without-gpu-cuda
+    # TODO: use text format for sparse reconstruction (or find the equivalent settings for database)
+    # https://colmap.github.io/format.html#text-format
     targetdir = os.path.dirname(filepath)
 
     # overwrite existing database
