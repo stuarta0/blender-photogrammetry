@@ -1,18 +1,15 @@
 import bpy
-from bpy_extras.io_utils import ExportHelper
 import os
-import shutil
-import subprocess
-from lxml import etree as ET
-# import xml.etree.ElementTree as ET
-from math import sin, cos, tan, radians
-from PIL import Image
+# from lxml import etree as ET
+import xml.etree.ElementTree as ET
+from math import tan, radians
 from mathutils import Vector, Matrix, Euler
 
 
-def extract(filename, imagepath):
+def extract(properties, *args, **kwargs):
     """
     :returns: {
+        'resolution': (width, height),
         'trackers': { 
             int: (x, y, z),
         },
@@ -33,6 +30,12 @@ def extract(filename, imagepath):
         }
     }
     """
+    filename = bpy.path.abspath(properties.filepath)
+    imagepath = bpy.path.abspath(properties.imagepath)
+
+    # TODO: load first referenced image in bpy.data and get size
+    # img = bpy.data.images.load(os.path.join(os.path.dirname(imagepath), filepath))
+    # 'resolution': img.size
     data = {
         'trackers': {},
         'cameras': {},
@@ -55,11 +58,7 @@ def extract(filename, imagepath):
         # Z rotation in blender is based on Y being 0
         # Z rotation from IM assumes X is 0 like in all standard maths
         # transform Z rotation to blenders representation by subtracting 90 degrees
-        z = float(extrinsics['R']['z']) #% 360
-        #if z < 0:
-        #    z = 360 + angle
-        #z = z - 90
-        
+        z = float(extrinsics['R']['z'])
         extrinsics.update({
             'T': Vector((float(extrinsics['T']['x']), float(extrinsics['T']['y']), float(extrinsics['T']['z']))),
             'R': Euler((radians(float(extrinsics['R']['x'])),

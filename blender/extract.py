@@ -53,7 +53,7 @@ def create_render_scene(scene, clip):
     return sc
 
 
-def extract(scene, clip, dirpath, frame_range):
+def extract(properties, *args, **kwargs):
     """ Prepares a scene for export (including writing frames to <dirpath>).
     :param scene: the scene to export
     :param clip: the movieclip with tracking data
@@ -83,6 +83,14 @@ def extract(scene, clip, dirpath, frame_range):
         }
     }
     """
+    scene = kwargs.get('scene', None)
+    dirpath = bpy.path.abspath(kwargs.get('dirpath', None))
+    if not scene or not dirpath:
+        raise Exception('Scene and dirpath not provided to blender.extract')
+    
+    clip = bpy.data.movieclips[properties.clip]
+    frame_range = range(scene.frame_start, scene.frame_end + 1, properties.frame_step)
+
     # set up a render scene for movie clip output
     export_scene = create_render_scene(scene, clip)
     try:

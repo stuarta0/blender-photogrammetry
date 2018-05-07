@@ -78,21 +78,24 @@ class ProcessPhotogrammetryOperator(bpy.types.Operator):
         print('process photogrammetry')
         print(p.input)
         print(p.output)
-        extract = getattr(p, p.input)
-        load = getattr(p, p.output)
+        extract_props = getattr(p, p.input)
+        load_props = getattr(p, p.output)
 
         from pprint import pprint
         data = None
-        if p.input == 'in_blender':
-            clip = bpy.data.movieclips[extract.clip]
-            data = extract_blender(scene, clip, bpy.path.abspath(load.dirpath),
-                                   range(scene.frame_start, scene.frame_end + 1, extract.frame_step))
+        if p.input == 'in_blender' and hasattr(load_props, 'dirpath'):
+            data = extract_blender(extract_props, scene=scene, dirpath=bpy.path.abspath(load_props.dirpath))
         elif p.input == 'in_rzi':
-            data = extract_imagemodeler(bpy.path.abspath(extract.filepath), bpy.path.abspath(extract.imagepath))
+            data = extract_imagemodeler(extract_props)
         pprint(data)
 
-        if p.output == 'pmvs':
-            load_pmvs(data, load.dirpath)
+        if data:
+            if p.output == 'out_blender':
+                load_blender(load_props, data, scene=scene)
+            if p.output == 'out_bundler':
+                load_bundler(load_props, data)
+            if p.output == 'out_pmvs':
+                load_pmvs(load_props, data)
 
         return{'FINISHED'}    
 
@@ -159,6 +162,7 @@ classes = (
     PhotogrammetryPropertyGroup,
     PhotogrammetryPanel,
     ProcessPhotogrammetryOperator,
+    PhotogrammetryPreferences,
 )
 
 

@@ -1,10 +1,13 @@
+import bpy
 import os
 
 
-def load(self, data, dirpath):
+def load(properties, data, *args, **kwargs):
     """
     Takes the structure calculated from parsing the input and writes to the bundler file structure
     """
+    dirpath = bpy.path.abspath(properties.dirpath)
+
     cameras = data['cameras']
     trackers = data['trackers']
 
