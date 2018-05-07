@@ -22,6 +22,7 @@ from .blender.extract import extract as extract_blender
 from .blender.load import load as load_blender
 
 from .bundler.groups import BundlerPropertyGroup
+from .bundler.extract import extract as extract_bundler
 from .bundler.load import load as load_bundler
 
 from .imagemodeler.groups import ImageModelerPropertyGroup
@@ -79,15 +80,18 @@ class ProcessPhotogrammetryOperator(bpy.types.Operator):
         print('process photogrammetry')
         print(p.input)
         print(p.output)
-        extract_props = getattr(p, p.input)
-        load_props = getattr(p, p.output)
+        extract_props = getattr(p, p.input, None)
+        load_props = getattr(p, p.output, None)
 
         from pprint import pprint
         data = None
-        if p.input == 'in_blender' and hasattr(load_props, 'dirpath'):
-            data = extract_blender(extract_props, scene=scene, dirpath=bpy.path.abspath(load_props.dirpath))
+        if p.input == 'in_blender':
+            data = extract_blender(extract_props, scene=scene)
+        elif p.input == 'in_bundler':
+            data = extract_bundler(extract_props)
         elif p.input == 'in_rzi':
             data = extract_imagemodeler(extract_props)
+        
         pprint(data)
 
         if data:

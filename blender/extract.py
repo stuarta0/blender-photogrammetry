@@ -84,7 +84,7 @@ def extract(properties, *args, **kwargs):
     }
     """
     scene = kwargs.get('scene', None)
-    dirpath = bpy.path.abspath(kwargs.get('dirpath', None))
+    dirpath = bpy.path.abspath(properties.dirpath)
     if not scene or not dirpath:
         raise Exception('Scene and dirpath not provided to blender.extract')
     
