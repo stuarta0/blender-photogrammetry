@@ -43,7 +43,10 @@ def extract(properties, *args, **kwargs):
     doc = ET.parse(filename)
     for locator in doc.findall('L'):
         co = locator.find('P').attrib
-        data['trackers'][int(locator.attrib['i'])] = (float(co['x']), float(co['y']), float(co['z']))
+        data['trackers'][int(locator.attrib['i'])] = {
+            'co': (float(co['x']), float(co['y']), float(co['z'])),
+            'rgb': (0, 0, 0),
+        }
     
     cinf = doc.find('CINF').attrib
 
