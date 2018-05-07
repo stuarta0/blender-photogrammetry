@@ -1,31 +1,41 @@
 # blender-photogrammetry
 
-Blender importer/exporter for Bundler file format to allow dense point cloud reconstruction from Blender's camera tracker.
+A photogrammetry addon for Blender that allows conversion and processing between a number of photogrammetry formats, in addition to providing dense reconstruction straight from Blender's camera tracker. 
 
-After tracking and solving a clip in Blender, use this addon to export the data to the Bundler file format. This format can be used in a number of photogrammetry tools to rebuild a dense point cloud. After dense point cloud reconstruction (and optional meshing), the resultant model can be reimported into the tracking scene in place.
+In the interests of remaining user friendly, this addon comes with all precompiled binaries required to process data.
 
-The current implementation has been tested with PMVS on 64-bit Windows 10 and 64-bit Ubuntu 17.10 as follows:
+Once enabled, the photogrammetry settings can be found in the Properties panel > Scene tab.
 
-* Track and solve a movie clip
-* Export Bundler .out file (exports bundle.out, list.txt and all associated movie clip frames in JPG format up to 3000px on the largest axis; see PMVS documentation)
-* If you enabled "Convert to PMVS" or "Execute PMVS", a subfolder named pmvs\ will be created with the Bundler files converted and images undistorted, ready for PMVS
-* If you enabled "Execute PMVS" then PMVS will be run against the converted data from the previous step
+## Supported Formats
 
-**Note**: If 'Convert to PMVS' or 'Execute PMVS' is enabled, it's recommended you show the system console so you can track the progress of the Bundler and PMVS processes. Blender will become unresponsive during this time.
+### Inputs:
 
-### 'Convert to PMVS' and 'Execute PMVS' caveats
+* **Blender's motion tracker**: Allows reading of the tracker and reconstruction data from a tracked movie clip. Good for generating a dense point cloud of a tracked movie clip for reference, rendering or simulation.
+* **Bundler**: Reads the bundler format consisting of a bundle.out and list.txt file.
+* **ImageModeler**: Reads an Autodesk ImageModeler .rzi file.
 
-Precompiled binaries for Bundler and PMVS are provided for Linux 32 & 64, and Windows 32 & 64 to allow running the reconstruction pipeline. If you're using a different platform or architecture, "Convert to PMVS" and "Execute PMVS" will be unavailable via the addon.
+### Outputs:
 
-### Debugging
+* **Blender**: From the given input, create cameras and mesh with vertices representing the point cloud from the input.
+* **Bundler**: Output a bundle.out, list.txt and associated images to use with other photogrammetry tools.
+* **PMVS**: Output the bundler file format, then run PMVS2 dense reconstruction on the dataset, resulting in a .ply point cloud.
+* **COLMAP**: Output to a COLMAP workspace, run COLMAP dense reconstruction and meshing, resulting in a .ply point cloud and .ply mesh. *Only available with CUDA GPUs*
 
-To examine the output of a bundler file (to verify the 2D points for each image), run the following from the Python console:
+**Note:** Since inputs are outputs can be mixed and matched, this addon can be used as a convertor between different photogrammetry formats (with the added benefit of having Blender integration).
 
-```python
-bpy.ops.debug.bundler_svg('INVOKE_DEFAULT')
-```
+## Usage
 
-This will open a file select screen where you can choose the bundle.out file. A new directory will be created named ```debug``` with SVGs for each image and it's associated points in 2D space.
+After processing a dense reconstruction in the format of choice, you can import the resulting .ply file back into Blender. Alternatively, use another tool like Meshlab to further process the data.
+
+In the case where Blender's motion tracking data is processed, the resulting .ply mesh can be imported back into the tracking scene in Blender with the correct alignment to the original camera. When importing the .ply file, ensure you use ```+Z up```, ```+Y forward```.
+
+**Note:** It's recommended you show the system console so you can track the progress of a reconstruction. Blender will become unresponsive whilst processing.
+
+### Caveats
+
+Precompiled binaries are provided for Linux and Windows on x86_64 hardware only. If you're using a different platform or architecture, you won't be able to process most formats.
+
+If you'd like more platform support (like Mac), please compile the supporting binaries (Bundler, PMVS, COLMAP) and send through a pull request so others may benefit.
 
 ## Sources
 
