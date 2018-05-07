@@ -102,8 +102,7 @@ def extract(properties, *args, **kwargs):
         voffset = Vector((0.5, 0.5))
 
         tracking = clip.tracking  # tracking contains camera info, default tracker settings, stabilisation info, etc
-        #frames = range(scene.frame_start, scene.frame_end + 1, self.frame_step)
-        cameras = []  # contains all camera data for each step of the frame range
+        cameras = {}
         active_tracks = []  # contains all bundled trackers active during specified frame range
 
         # get the global transform for the camera without camera constraint to 
@@ -114,7 +113,7 @@ def extract(properties, *args, **kwargs):
         mw = scene.camera.matrix_world.copy()
         cam_constraint.influence = 1
 
-        for f in frame_range:
+        for cid, f in enumerate(frame_range):
             # render each movie clip frame to jpeg still
             scene.frame_set(f)
             export_scene.frame_set(f)
@@ -140,7 +139,7 @@ def extract(properties, *args, **kwargs):
             R.transpose()
             c = scene.camera.matrix_world.translation.copy()
             t = -1 * R * c
-            cameras.append({
+            cameras.setdefault(cid, {
                 'filename': filename,
                 'frame': f,
                 'f': int(clip_size[0] * (cd.lens / cd.sensor_width)), # tracking.camera.focal_length_pixels,
@@ -155,7 +154,7 @@ def extract(properties, *args, **kwargs):
         to_remove = []
         for track in active_tracks:
             track_cameras = []
-            for camera in cameras:
+            for camera in cameras.values():
                 if track in camera['tracks']:
                     track_cameras.append(camera)
             if len(track_cameras) < 2:
@@ -166,12 +165,12 @@ def extract(properties, *args, **kwargs):
             active_tracks.remove(track)
             # also remove this track from any cameras and if that causes a camera to 
             # have no more tracks, remove the camera too
-            for camera in cameras:
+            for cid, camera in cameras.items():
                 camera['tracks'].remove(track)
                 if not camera['tracks']:
-                    to_remove_cams.append(camera)
-        for camera in to_remove_cams:
-            cameras.remove(camera)
+                    to_remove_cams.append(cid)
+        for cid in to_remove_cams:
+            cameras.pop(cid, None)
 
         # now build the final reference structure
         trackers = {}
@@ -181,7 +180,7 @@ def extract(properties, *args, **kwargs):
                 'rgb': (0, 0, 0),
             }
             # loop over every camera that this track is visible in
-            track_cameras = [camera for camera in cameras if track in camera['tracks']]
+            track_cameras = [camera for camera in cameras.values() if track in camera['tracks']]
             for camera in track_cameras:
                 # The pixel positions are floating point numbers in a coordinate system where the origin is the center of the image, 
                 # the x-axis increases to the right, and the y-axis increases towards the top of the image. Thus, (-w/2, -h/2) is 
@@ -191,7 +190,7 @@ def extract(properties, *args, **kwargs):
                 camera['trackers'][idx] = tuple(map(lambda i, j: i * j, list(marker.co - voffset), list(clip_size)))
         
         # remove helper keys
-        for camera in cameras:
+        for camera in cameras.values():
             camera.pop('frame', None)
             camera.pop('tracks', None)
 

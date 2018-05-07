@@ -25,15 +25,15 @@ def load(properties, data, *args, **kwargs):
         f.write('{} {}\n'.format(len(cameras.items()), len(trackers.items())))
         for camera in cameras.values():
             f.write('{f} {k[0]} {k[1]}\n'.format(**camera))
-            f.write('{v[0]} {v[1]} {v[2]}\n'.format(v=camera['R'][0]))
-            f.write('{v[0]} {v[1]} {v[2]}\n'.format(v=camera['R'][1]))
-            f.write('{v[0]} {v[1]} {v[2]}\n'.format(v=camera['R'][2]))
-            f.write('{v[0]} {v[1]} {v[2]}\n'.format(v=camera['t']))
+            f.write('{} {} {}\n'.format(*camera['R'][0]))
+            f.write('{} {} {}\n'.format(*camera['R'][1]))
+            f.write('{} {} {}\n'.format(*camera['R'][2]))
+            f.write('{} {} {}\n'.format(*camera['t']))
         
         # now write the points and corresponding matching cameras
         for tid, track in trackers.items():
-            f.write('{v[0]} {v[1]} {v[2]}\n'.format(v=track))
-            f.write('255 255 255\n')  # TODO: RGB of point
+            f.write('{} {} {}\n'.format(*track['co']))
+            f.write('{} {} {}\n'.format(*track['rgb']))
             # calculate view list
             visible_in = {}
             for cid, camera in cameras.items():

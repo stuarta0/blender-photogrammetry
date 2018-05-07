@@ -19,6 +19,7 @@ from bpy_extras.io_utils import ExportHelper, ImportHelper
 
 from .blender.groups import Input_BlenderPropertyGroup
 from .blender.extract import extract as extract_blender
+from .blender.load import load as load_blender
 
 from .bundler.groups import BundlerPropertyGroup
 from .bundler.load import load as load_bundler
