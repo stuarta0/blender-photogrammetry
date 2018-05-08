@@ -4,29 +4,41 @@ import subprocess
 import shutil
 import platform
 
+import bpy
 
-def listpath_from_bundle(bundle_path):
-    name = '.'.join(['list',] + os.path.basename(bundle_path).split('.')[1:-1] + ['txt', ])
-    return os.path.join(os.path.dirname(bundle_path), name)
+from ..bundler.load import load as load_bundler
 
 
-def bundle2pmvs(bin_path, bundle_path, target_dir, pmvs_options):
-    print('bundle2pmvs({}, {}, {})'.format(bin_path, bundle_path, target_dir))
-    ext = '.exe' if platform.system().lower() == 'windows' else ''
+class BundlerProperties(object):
+    def __init__(self, dirpath, *args, **kwargs):
+        super()
+        self.dirpath = dirpath
+
+
+def load(properties, data, *args, **kwargs):
+    #def bundle2pmvs(bin_path, bundle_path, target_dir, pmvs_options):
+    osname = platform.system().lower()
+    dirpath = bpy.path.abspath(properties.dirpath)
+    binpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), osname)
+    target = 'pmvs' + os.sep
+    ext = '.exe' if osname == 'windows' else ''
     
-    os.chdir(os.path.dirname(bundle_path))
-    subprocess.call([os.path.join(bin_path, 'Bundle2PMVS{}'.format(ext)), 'list.txt', os.path.basename(bundle_path), target_dir, ])
-    subprocess.call([os.path.join(bin_path, 'RadialUndistort{}'.format(ext)), 'list.txt', os.path.basename(bundle_path), target_dir, ])
+    # running PMVS requires transforming to Bundler first
+    load_bundler(BundlerProperties(dirpath=dirpath), data)
+
+    os.chdir(dirpath)
+    subprocess.call([os.path.join(binpath, 'Bundle2PMVS{}'.format(ext)), 'list.txt', 'bundle.out', target, ])
+    subprocess.call([os.path.join(binpath, 'RadialUndistort{}'.format(ext)), 'list.txt', 'bundle.out', target, ])
 
     def mkdir(path):
         if not os.path.exists(path):
             os.mkdir(path)
 
-    mkdir(os.path.join(target_dir, 'models'))
-    mkdir(os.path.join(target_dir, 'txt'))
-    mkdir(os.path.join(target_dir, 'visualize'))
+    mkdir(os.path.join(target, 'models'))
+    mkdir(os.path.join(target, 'txt'))
+    mkdir(os.path.join(target, 'visualize'))
 
-    with open(os.path.join(target_dir, 'list.rd.txt'), 'r') as f:
+    with open(os.path.join(target, 'list.rd.txt'), 'r') as f:
         images = f.readlines()
 
     # copy 00000000.txt to txt\00000000.txt
@@ -40,44 +52,39 @@ def bundle2pmvs(bin_path, bundle_path, target_dir, pmvs_options):
 
     for i, path in enumerate(images):
         shutil.move(
-            os.path.join(target_dir, (int_format + '.txt').format(i)),
-            os.path.join(target_dir, 'txt', (int_format + '.txt').format(i)))
+            os.path.join(target, (int_format + '.txt').format(i)),
+            os.path.join(target, 'txt', (int_format + '.txt').format(i)))
         shutil.move(
-            os.path.join(target_dir, '{}.rd.jpg'.format(os.path.basename(os.path.splitext(path)[0]))),
-            os.path.join(target_dir, 'visualize', (int_format + '.jpg').format(i)))
+            os.path.join(target, '{}.rd.jpg'.format(os.path.basename(os.path.splitext(path)[0]))),
+            os.path.join(target, 'visualize', (int_format + '.jpg').format(i)))
 
     # rewrite list.txt to include path to visualize\00000000.jpg
-    with open(os.path.join(target_dir, 'list.rd.txt'), 'w+') as f:
+    with open(os.path.join(target, 'list.rd.txt'), 'w+') as f:
         f.writelines([('visualize\\' + int_format + '.jpg\n').format(i) for i, data in enumerate(images)])
 
     # rewrite pmvs_options.txt to skip vis.dat as we won't be using cmvs here
-    pmvs_options.update({'useVisData': 0})
+    pmvs_options = {
+        'level': properties.level,
+        'csize': properties.csize,
+        'threshold': properties.threshold,
+        'wsize': properties.wsize,
+        'minImageNum': properties.minImageNum,
+        'useVisData': 0,
+    }
     pattern = re.compile(r'^([^\s]+)\s')
-    with open(os.path.join(target_dir, 'pmvs_options.txt'), 'r') as f:
+    with open(os.path.join(target, 'pmvs_options.txt'), 'r') as f:
         lines = f.readlines()
         for i, line in enumerate(lines):
             match = pattern.search(line)
             if match and match.group(1) in pmvs_options:
                 lines[i] = '{key} {value}\n'.format(key=match.group(1), value=pmvs_options[match.group(1)])
     
-    options = os.path.join(target_dir, 'reconstruction')
-    with open(options, 'w+') as f:
+    os.chdir(target)
+    options_path = 'reconstruction'
+    with open(options_path, 'w+') as f:
         f.writelines(lines)
-    return options
 
-
-def pmvs(bin_path, option_path):
-    # if linux, set:
-    # LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:bin_path && export LD_LIBRARY_PATH
-    print('pmvs({})'.format(option_path))
-    os.chdir(os.path.dirname(option_path))
-
-    ext = '.exe' if platform.system().lower() == 'windows' else ''
-    subprocess.call([os.path.join(bin_path, 'pmvs2{}'.format(ext)), '.{}'.format(os.sep), os.path.basename(option_path), ])
-
-
-def load(data, dirpath):
-    print('load pmvs')
+    subprocess.call([os.path.join(binpath, 'pmvs2{}'.format(ext)), '.{}'.format(os.sep), os.path.basename(options_path), ])
 
 
 # def create_debug_svg(bpy_module, bundle_path):

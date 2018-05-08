@@ -8,7 +8,6 @@ from collections import namedtuple
 
 def extract(properties, *args, **kargs):
     dirpath = bpy.path.abspath(properties.dirpath)
-    print(dirpath)
 
     # # TODO: read list.txt to get image paths to detect image size
     # resolution_x = int(scene.render.resolution_x * (scene.render.resolution_percentage / 100))

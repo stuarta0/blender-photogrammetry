@@ -1,5 +1,6 @@
 import bpy
 import os
+import shutil
 
 
 def load(properties, data, *args, **kwargs):
@@ -13,6 +14,11 @@ def load(properties, data, *args, **kwargs):
 
     if not os.path.exists(dirpath):
         os.makedirs(dirpath)
+
+    # copy all images into bundler folder
+    for camera in cameras.values():
+        shutil.copy(camera['filename'], dirpath)
+        camera['filename'] = os.path.basename(camera['filename'])
 
     # write the image list file that corresponds with the camera index in bundle.out
     with open(os.path.join(dirpath, 'list.txt'), 'w+') as f:

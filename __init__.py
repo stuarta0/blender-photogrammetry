@@ -50,29 +50,6 @@ class ProcessPhotogrammetryOperator(bpy.types.Operator):
     bl_idname = "photogrammetry.process"
     bl_label = "Process photogrammetry from current scene settings"
 
-    # def execute(self, context):
-    #     # with ProgressReport(context.window_manager) as progress:
-    #     if self.clip not in bpy.data.movieclips:
-    #         self.report({'ERROR'}, 'No movie clip selected')
-    #         return {'CANCELLED'}
-
-    #     scene = context.scene
-    #     clip = bpy.data.movieclips[self.clip]
-    #     export_colmap(scene, clip, self.filepath, range(scene.frame_start, scene.frame_end + 1, self.frame_step))
-        
-    #     if self.exec_colmap:
-    #         user_prefs = context.user_preferences
-    #         addon_prefs = user_prefs.addons[__name__].preferences
-
-    #         script_file = os.path.realpath(__file__)
-    #         addon_dir = os.path.dirname(script_file)
-            
-    #         bin_path = os.path.join(addon_dir, addon_prefs.platform)
-    #         if os.path.exists(bin_path):
-    #             run_colmap(bin_path, self.filepath)
-
-    #     return {'FINISHED'}
-
     def execute(self, context):
         scene = context.scene
         p = scene.photogrammetry
@@ -105,6 +82,7 @@ class ProcessPhotogrammetryOperator(bpy.types.Operator):
         return{'FINISHED'}    
 
 
+# To change over to a dynamic I/O architecture (where formats can be added/removed as needed), see here:
 # https://hamaluik.com/posts/dynamic-blender-properties/
 class PhotogrammetryPropertyGroup(PropertyGroup):
     input = EnumProperty(name='From', items=(

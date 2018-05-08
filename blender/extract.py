@@ -20,6 +20,7 @@ def create_render_scene(scene, clip):
     r.resolution_percentage = floor(100 * min(1.0, (3000 / max(r.resolution_x, r.resolution_y))))  # 3000px limit on PMVS
     r.fps = scene.render.fps
     r.image_settings.file_format = 'JPEG'
+    r.image_settings.quality = 100
     
     sc.use_nodes = True
     tree = sc.node_tree
@@ -117,8 +118,8 @@ def extract(properties, *args, **kwargs):
             # render each movie clip frame to jpeg still
             scene.frame_set(f)
             export_scene.frame_set(f)
-            filename = '{0:0>4}.jpg'.format(f)
-            export_scene.render.filepath = os.path.join(dirpath, filename)
+            filename = os.path.join(dirpath, '{0:0>4}.jpg'.format(f))
+            export_scene.render.filepath = filename
             bpy.ops.render.render(write_still=True, scene=export_scene.name)
 
             # get the unique tracks at this frame
@@ -166,9 +167,10 @@ def extract(properties, *args, **kwargs):
             # also remove this track from any cameras and if that causes a camera to 
             # have no more tracks, remove the camera too
             for cid, camera in cameras.items():
-                camera['tracks'].remove(track)
-                if not camera['tracks']:
-                    to_remove_cams.append(cid)
+                if track in camera['tracks']:
+                    camera['tracks'].remove(track)
+                    if not camera['tracks']:
+                        to_remove_cams.append(cid)
         for cid in to_remove_cams:
             cameras.pop(cid, None)
 
