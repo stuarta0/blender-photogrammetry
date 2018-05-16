@@ -27,7 +27,7 @@ def load(properties, data, *args, **kwargs):
         translation = -1 * mrot * Vector(camera['t'])
         
         # create and link camera
-        name = "PhotogrammetryCamera{}".format(cid)
+        name = os.path.splitext(os.path.basename(camera['filename']))[0]
         cdata = bpy.data.cameras.new(name)
         cam = bpy.data.objects.new(name, cdata)
         scene.objects.link(cam)
