@@ -86,6 +86,10 @@ def load(properties, data, *args, **kwargs):
 
     subprocess.call([os.path.join(binpath, 'pmvs2{}'.format(ext)), '.{}'.format(os.sep), os.path.basename(options_path), ])
 
+    model = os.path.join('models', 'reconstruction.ply')
+    if os.path.exists(model) and properties.import_result:
+        bpy.ops.import_mesh.ply(filepath=model)
+
 
 # def create_debug_svg(bpy_module, bundle_path):
 #     list_path = listpath_from_bundle(bundle_path)

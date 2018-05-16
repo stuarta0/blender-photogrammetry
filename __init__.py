@@ -102,8 +102,6 @@ class PhotogrammetryPropertyGroup(PropertyGroup):
                          ), default='out_pmvs')
     out_bundler = PointerProperty(type=BundlerPropertyGroup)
     out_pmvs = PointerProperty(type=PMVSPropertyGroup)
-
-    import_result = BoolProperty(name='Automatically import reconstruction', default=False)
     
     def draw(self, layout):
         layout.prop(self, 'input')
@@ -121,7 +119,6 @@ class PhotogrammetryPropertyGroup(PropertyGroup):
             
         layout.separator()
         layout.operator("photogrammetry.process", text='Process')
-        layout.prop(self, 'import_result')
 
 
 class PhotogrammetryPanel(bpy.types.Panel):
