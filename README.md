@@ -37,6 +37,8 @@ Precompiled binaries are provided for Linux and Windows on x86_64 hardware only.
 
 If you'd like more platform support (like Mac), please compile the supporting binaries (Bundler, PMVS, COLMAP) and send through a pull request so others may benefit.
 
+If you run into issues on linux, you may need to install ```libjpeg62``` and ```libgfortran3```.
+
 ## Sources
 
 ### Bundler

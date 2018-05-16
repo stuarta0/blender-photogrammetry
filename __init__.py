@@ -160,15 +160,16 @@ def register():
         addon_dir = os.path.dirname(script_file)
         print('[blender-photogrammetry] Attempting to set execute flag on precompiled binaries in:')
         print(addon_dir)
-        # def set_execute(dirname):
-        #     for f in os.listdir(dirname):
-        #         os.chmod(os.path.join(dirname, f), 0o755)
-        # try:
-        #     for dirname in ['linux32', 'linux64']:
-        #         set_execute(os.path.join(addon_dir, dirname))
-        # except Exception as ex:
-        #     print('Unable to set precompiled binaries execute flag.')
-        #     print(ex)
+        
+        targets = ['pmvs', 'RadialUndistort', 'Bundle2PMVS']
+        try:
+            for root, dirs, files in os.walk(addon_dir):
+                for f in files:
+                    if any([f.startswith(t) for t in targets]):
+                        os.chmod(os.path.join(root, f), 0o755)
+        except Exception as ex:
+            print('Unable to set precompiled binaries execute flag.')
+            print(ex)
 
 
 def unregister():

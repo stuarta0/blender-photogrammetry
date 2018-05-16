@@ -6,7 +6,7 @@ from mathutils import Vector, Matrix, Euler
 
 def create_render_scene(scene, clip):
     """ Creates a scene specifically for rendering source movie clip as JPG stills """
-    sc = bpy.data.scenes.new('export.bundler')
+    sc = bpy.data.scenes.new('photogrammetry_helper')
     sc.frame_start = scene.frame_start
     sc.frame_end = scene.frame_end
     
@@ -17,11 +17,12 @@ def create_render_scene(scene, clip):
     r = sc.render
     r.resolution_x = clip.size[0]
     r.resolution_y = clip.size[1]
-    r.resolution_percentage = floor(100 * min(1.0, (3000 / max(r.resolution_x, r.resolution_y))))  # 3000px limit on PMVS
+    r.resolution_percentage = 100  # floor(100 * min(1.0, (3000 / max(r.resolution_x, r.resolution_y))))  # 3000px limit on PMVS
     r.fps = scene.render.fps
     r.image_settings.file_format = 'JPEG'
     r.image_settings.quality = 100
     
+    sc.display_settings.display_device = 'sRGB'
     sc.use_nodes = True
     tree = sc.node_tree
     

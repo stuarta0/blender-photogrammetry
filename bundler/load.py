@@ -1,6 +1,27 @@
 import bpy
 import os
 import shutil
+from math import floor
+
+
+def convert_image(filepath, target):
+    """ Creates a scene specifically for saving an image as JPG """
+    sc = bpy.data.scenes.new('photogrammetry_helper')
+    try:
+        img = bpy.data.images.load(filepath)
+        r = sc.render
+        r.resolution_x = img.size[0]
+        r.resolution_y = img.size[1]
+        r.resolution_percentage = floor(100 * min(1.0, (3000 / max(r.resolution_x, r.resolution_y))))  # 3000px limit on PMVS
+        r.image_settings.file_format = 'JPEG'
+        r.image_settings.quality = 100
+
+        sc.display_settings.display_device = 'sRGB'
+        img.save_render(target, scene=sc)
+        bpy.data.images.remove(img)
+    finally:
+        # remove the temporary export scene
+        bpy.data.scenes.remove(sc)
 
 
 def load(properties, data, *args, **kwargs):
@@ -15,10 +36,13 @@ def load(properties, data, *args, **kwargs):
     if not os.path.exists(dirpath):
         os.makedirs(dirpath)
 
-    # copy all images into bundler folder
+    # copy and convert all images into bundler folder
     for camera in cameras.values():
-        shutil.copy(camera['filename'], dirpath)
-        camera['filename'] = os.path.basename(camera['filename'])
+        filepath = camera['filename']
+        target = os.path.join(dirpath, os.path.splitext(os.path.basename(filepath))[0] + '.jpg')
+        convert_image(filepath, target)
+        #shutil.copy(camera['filename'], dirpath)
+        camera['filename'] = os.path.basename(target)
 
     # write the image list file that corresponds with the camera index in bundle.out
     with open(os.path.join(dirpath, 'list.txt'), 'w+') as f:
