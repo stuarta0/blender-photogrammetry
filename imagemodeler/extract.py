@@ -31,7 +31,7 @@ def extract(properties, *args, **kwargs):
     }
     """
     filename = bpy.path.abspath(properties.filepath)
-    imagepath = bpy.path.abspath(properties.imagepath)
+    imagepaths = list(filter(None, bpy.path.abspath(properties.imagepath).split(';')))
 
     # TODO: load first referenced image in bpy.data and get size
     # img = bpy.data.images.load(os.path.join(os.path.dirname(imagepath), filepath))
@@ -77,8 +77,13 @@ def extract(properties, *args, **kwargs):
         f = (float(cinf['fbw']) / 2) / tan(radians(float(intrinsics['fovx']) / 2))
         f_pixels = int(shot.attrib['w']) * (f / float(cinf['fbw']))
 
+        # find any filename that exists
+        filenames = [fp for fp in [os.path.join(*parts) for parts in zip(imagepaths, [shot.attrib['n'],] * len(imagepaths))] if os.path.exists(fp)]
+        if not filenames:
+            raise Exception('Image not found for camera {}: {}'.format(shot.attrib['i'], shot.attrib['n']))
+
         camera = data['cameras'].setdefault(int(shot.attrib['i']), {
-            'filename': os.path.join(imagepath, shot.attrib['n']),
+            'filename': filenames[0],
             'f': f_pixels,
             'k': (-float(intrinsics['rd']),) * 3,
             'c': extrinsics['T'],
@@ -86,8 +91,10 @@ def extract(properties, *args, **kwargs):
             't': tuple(-1 * extrinsics['R'] * extrinsics['T']),
         })
 
-        if not os.path.exists(camera['filename']):
-            raise Exception('Image not found for camera {}: {}'.format(shot.attrib['i'], camera['filename']))
+        if 'resolution' not in data:
+            img = bpy.data.images.load(camera['filename'])
+            data.setdefault('resolution', tuple(img.size))
+            bpy.data.images.remove(img)
 
         trackers = camera.setdefault('trackers', {})
         for marker in shot.find('IPLN').find('IFRM').findall('M'):

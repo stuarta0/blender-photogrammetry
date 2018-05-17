@@ -11,7 +11,6 @@ def load(properties, data, *args, **kwargs):
     if not scene:
         raise Exception('Scene required to load data in blender.load')
 
-
     if 'resolution' in data:
         scene.render.resolution_x, scene.render.resolution_y = data['resolution']
 
