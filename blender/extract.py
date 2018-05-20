@@ -109,11 +109,11 @@ def extract(properties, *args, **kwargs):
 
         # get the global transform for the camera without camera constraint to 
         # project the tracked points bundle into world space
-        scene.frame_set(scene.frame_start)
-        cam_constraint = scene.camera.constraints[0]
-        cam_constraint.influence = 0
-        mw = scene.camera.matrix_world.copy()
-        cam_constraint.influence = 1
+        # <blender source>/release/scripts/startup/bl_operators/clip.py, CLIP_OT_bundles_to_mesh()
+        reconstruction = tracking.objects.active.reconstruction
+        framenr = scene.frame_current - clip.frame_start + 1
+        reconstructed_matrix = reconstruction.cameras.matrix_from_frame(framenr)
+        mw = scene.camera.matrix_world * reconstructed_matrix.inverted()
 
         for cid, f in enumerate(frame_range):
             # render each movie clip frame to jpeg still
