@@ -1,228 +1,155 @@
 bl_info = {
-    "name": "Bundler OUT format",
+    "name": "Photogrammetry Processing",
     "author": "Stuart Attenborrow",
     "version": (0, 0, 1),
     "blender": (2, 79, 0),
-    "location": "File > Import-Export",
-    "description": "Import-Export Bundler OUT format (and associated files) for dense reconstruction using photogrammetry tools",
+    "location": "Properties > Scene",
+    "description": "Provides the ability to process data in various photogrammetry tools, including blender's motion tracking output",
     "wiki_url": "https://www.github.com/stuarta0/blender-photogrammetry",
-    "category": "Import-Export",
+    "category": "Motion Tracking",
 }
 
 import platform
-import bpy
 import os
-from bpy.props import (StringProperty,
-                       BoolProperty,
-                       IntProperty,
-                       FloatProperty,
-                       EnumProperty,)
-from bpy.types import AddonPreferences
+
+import bpy
+from bpy.props import PointerProperty, IntProperty, FloatProperty, StringProperty, EnumProperty, BoolProperty
+from bpy.types import AddonPreferences, PropertyGroup, Operator
 from bpy_extras.io_utils import ExportHelper, ImportHelper
 
-from .import_bundler import import_bundler
-from .export_bundler import export_bundler
-from .utils import listpath_from_bundle, bundle2pmvs, pmvs, create_debug_svg
+from .blender.groups import Input_BlenderPropertyGroup
+from .blender.extract import extract as extract_blender
+from .blender.load import load as load_blender
+
+from .bundler.groups import BundlerPropertyGroup
+from .bundler.extract import extract as extract_bundler
+from .bundler.load import load as load_bundler
+
+from .imagemodeler.groups import ImageModelerPropertyGroup
+from .imagemodeler.extract import extract as extract_imagemodeler
+
+from .pmvs.groups import PMVSPropertyGroup
+from .pmvs.load import load as load_pmvs
 
 
-def get_precompiled_bin_path():
-    # https://stackoverflow.com/a/45125525
-    arch = platform.machine().lower()
-    if arch in ['x86_64', 'amd64', ]:
-        arch = '64'
-    else:
-        arch = '32'
-
-    os = platform.system().lower()
-    return '{os}{arch}'.format(os=os, arch=arch)
-
-
-class BlundlePreferences(AddonPreferences):
+class PhotogrammetryPreferences(AddonPreferences):
     bl_idname = __name__
     platform = StringProperty(
         name='Platform',
-        description='Path to the binaries for this platform in the format {os}_{arch}',
-        default=get_precompiled_bin_path()
+        description='Path to the binaries for this platform in the format {os}',
+        default=platform.system().lower()
     )
     
     def draw(self, context):
         layout = self.layout
         layout.prop(self, "platform")
-        layout.label(text="Valid platforms are linux32, linux64, windows32 and windows64.")
+        layout.label(text="Valid platforms are 'linux' or 'windows'.")
 
 
-class ImportBundler(bpy.types.Operator, ImportHelper):
-    """Import a Bundler bundle.out file"""
-    bl_idname = "import.bundler"
-    bl_label = "Bundler (.out)"
-    
-    filename_ext = '.out'
-    filter_glob = StringProperty(default='*.out', options={'HIDDEN'})
+class ProcessPhotogrammetryOperator(bpy.types.Operator):
+    bl_idname = "photogrammetry.process"
+    bl_label = "Process photogrammetry from current scene settings"
 
     def execute(self, context):
-        bundle_path = self.filepath
-        list_path = listpath_from_bundle(bundle_path)
+        scene = context.scene
+        p = scene.photogrammetry
+        
+        print('process photogrammetry')
+        print(p.input)
+        print(p.output)
+        extract_props = getattr(p, p.input, None)
+        load_props = getattr(p, p.output, None)
 
-        if not (os.path.exists(bundle_path) and os.path.exists(list_path)):
-            self.report({'ERROR'}, 'The bundler .out file must exist with an associated list.txt in the same directory')
-            return {'CANCELLED'}
+        from pprint import pprint
+        data = None
+        if p.input == 'in_blender':
+            data = extract_blender(extract_props, scene=scene)
+        elif p.input == 'in_bundler':
+            data = extract_bundler(extract_props)
+        elif p.input == 'in_rzi':
+            data = extract_imagemodeler(extract_props)
+        
+        pprint(data)
 
-        import_bundler(bundle_path, list_path, context.scene)
-        return {'FINISHED'}
+        if data:
+            if p.output == 'out_blender':
+                load_blender(load_props, data, scene=scene)
+            if p.output == 'out_bundler':
+                load_bundler(load_props, data)
+            if p.output == 'out_pmvs':
+                load_pmvs(load_props, data)
+
+        return{'FINISHED'}    
+
+
+# To change over to a dynamic I/O architecture (where formats can be added/removed as needed), see here:
+# https://hamaluik.com/posts/dynamic-blender-properties/
+class PhotogrammetryPropertyGroup(PropertyGroup):
+    input = EnumProperty(name='From', items=(
+                            ('in_blender', 'Blender Motion Tracking', 'Use tracking data from current scene'),
+                            ('in_bundler', 'Bundler', 'Read a Bundler OUT file'),
+                            ('in_rzi', 'ImageModeler', 'Read an ImageModeler RZI file'),
+                        ), default='in_blender')
+    in_blender = PointerProperty(type=Input_BlenderPropertyGroup)
+    in_bundler = PointerProperty(type=BundlerPropertyGroup)
+    in_rzi = PointerProperty(type=ImageModelerPropertyGroup)
+                        
+    output = EnumProperty(name='To', items=(
+                             ('out_blender', 'Blender', 'Import data into current scene'),
+                             ('out_bundler', 'Bundler', 'Output images and bundle.out'),
+                             ('out_pmvs', 'PMVS', 'Use PMVS2 to generate a dense point cloud'),
+                             ('out_colmap', 'COLMAP', 'Use COLMAP to generate a dense point cloud and reconstructed mesh'),
+                         ), default='out_pmvs')
+    out_bundler = PointerProperty(type=BundlerPropertyGroup)
+    out_pmvs = PointerProperty(type=PMVSPropertyGroup)
     
-
-def clip_updated(self, context):
-    if self.clip in bpy.data.movieclips:
-        clip = bpy.data.movieclips[self.clip]
-        self['clip_size'] = '{x}x{y}'.format(x=clip.size[0], y=clip.size[1],)
-        self['frame_step'] = max(1, int(context.scene.render.fps / 3))  # don't want too many frames when generating dense point clouds
-    else:
-        self['clip_size'] = ''
-
-
-def convert_updated(self, context):
-    if not self.convert_pmvs:
-        self.exec_pmvs = False
-
-
-def execute_updated(self, context):
-    if self.exec_pmvs:
-        self.convert_pmvs = True
+    def draw(self, layout):
+        layout.prop(self, 'input')
+        try:
+            getattr(self, self.input).draw(layout)
+        except AttributeError:
+            layout.label(text='No options')
+        
+        layout.separator()
+        layout.prop(self, 'output')
+        try:
+            getattr(self, self.output).draw(layout)
+        except AttributeError:
+            layout.label(text='No options')
+            
+        layout.separator()
+        layout.operator("photogrammetry.process", text='Process')
 
 
-class ExportMovieClipBundler(bpy.types.Operator, ExportHelper):
-    """Export a movie clip's tracking data to bundler *.out format"""
-    bl_idname = "export.bundler"
-    bl_label = "Bundler (.out)"
-    
-    filename_ext = '.out'
-    filter_glob = StringProperty(default='*.out', options={'HIDDEN'})
-    clip = StringProperty(name='Movie Clip', update=clip_updated)
-    frame_step = IntProperty(name='Frame Step', description='Number of frames to skip when exporting frames for Bundler', default=1)
-    clip_size = StringProperty(name='Size', default='')
-    convert_pmvs = BoolProperty(name='Convert to PMVS', update=convert_updated, description='Convert bundle.out to PMVS format in subdirectory "pmvs"', default=False)
-    exec_pmvs = BoolProperty(name='Execute PMVS', update=execute_updated, description='Run PMVS with default settings for dense reconstruction', default=False)
-
-    pmvs_level = IntProperty(name='Level', default=1, min=0, description='When level is 0, original (full) resolution images are used. When level is 1, images are halved (or 4 times less pixels). And so on')
-    pmvs_csize = IntProperty(name='Cell Size', default=2, min=1, description='Controls the density of reconstructions. increasing the value of cell size leads to sparser reconstructions')
-    pmvs_threshold = FloatProperty(name='Threshold', default=0.7, min=0.15, description='A patch reconstruction is accepted as a success and kept, if its associcated photometric consistency measure is above this threshold. The software repeats three iterations of the reconstruction pipeline, and this threshold is relaxed (decreased) by 0.05 at the end of each iteration')
-    pmvs_wsize = IntProperty(name='Window Size', default=7, min=1, description='The software samples wsize x wsize pixel colors from each image to compute photometric consistency score.  Increasing the value leads to more stable reconstructions, but the program becomes slower')
-    pmvs_minImageNum = IntProperty(name='Min Image Num', default=3, min=2, description='Each 3D point must be visible in at least this many images to be reconstructed. If images are poor quality, increase this value')
-    #CPU 8
-    #setEdge 0
-    #useBound 0
-    #useVisData 0
-    #sequence -1
-    #timages -1 0 3
-    #oimages -3
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.filepath = 'bundle'
-        self.clip = bpy.context.scene.active_clip.name if bpy.context.scene.active_clip else ''
+class PhotogrammetryPanel(bpy.types.Panel):
+    bl_idname = "photogrammetry.settings"
+    bl_label = "Photogrammetry Tools"
+    bl_space_type = "PROPERTIES"
+    bl_region_type = "WINDOW"
+    bl_context = "scene"
     
     def draw(self, context):
-        # if not self.clip and context.scene.active_clip:
-        #    self['clip'] = context.scene.active_clip.name
-        
         layout = self.layout
-        row = layout.row(align=True)
-        row.prop_search(self, 'clip', bpy.data, 'movieclips')
-        
-        if self.clip_size:
-            row = layout.row(align=True)
-            row.label(text='')
-            row.label(text=self.clip_size)
-        
-        row = layout.row(align=True)
-        row.prop(self, 'frame_step')
-        
-        row = layout.row(align=True)
-        row.prop(self, 'convert_pmvs')
-        
-        row = layout.row(align=True)
-        row.prop(self, 'exec_pmvs')
-
-        if self.convert_pmvs:
-            layout.label(text='PMVS Options:')
-            layout.prop(self, 'pmvs_level')
-            layout.prop(self, 'pmvs_csize')
-            layout.prop(self, 'pmvs_threshold')
-            layout.prop(self, 'pmvs_wsize')
-            layout.prop(self, 'pmvs_minImageNum')
-
-    def execute(self, context):
-        # with ProgressReport(context.window_manager) as progress:
-        if self.clip not in bpy.data.movieclips:
-            self.report({'ERROR'}, 'No movie clip selected')
-            return {'CANCELLED'}
-
-        scene = context.scene
-        clip = bpy.data.movieclips[self.clip]
-        export_bundler(scene, clip, self.filepath, range(scene.frame_start, scene.frame_end + 1, self.frame_step))
-        
-        if self.convert_pmvs or self.exec_pmvs:
-            user_prefs = context.user_preferences
-            addon_prefs = user_prefs.addons[__name__].preferences
-
-            script_file = os.path.realpath(__file__)
-            addon_dir = os.path.dirname(script_file)
-            
-            bin_path = os.path.join(addon_dir, addon_prefs.platform)
-            pmvs_path = os.path.join(os.path.dirname(self.filepath), 'pmvs')
-            if os.path.exists(bin_path):
-                pmvs_options = {
-                    'level': self.pmvs_level,
-                    'csize': self.pmvs_csize,
-                    'threshold': self.pmvs_threshold,
-                    'wsize': self.pmvs_wsize,
-                    'minImageNum': self.pmvs_minImageNum
-                }
-                option_path = bundle2pmvs(bin_path, self.filepath, pmvs_path, pmvs_options)
-            
-                if self.exec_pmvs:
-                    pmvs(bin_path, option_path)
-
-        return {'FINISHED'}
-
-
-class DebugSvg(bpy.types.Operator):
-    bl_idname = 'debug.bundler_svg'
-    bl_label = 'Create debug SVGs for bundle file'
-    
-    filepath = bpy.props.StringProperty(subtype="FILE_PATH")
-
-    def execute(self, context):
-        create_debug_svg(bpy, self.filepath)
-        return {'FINISHED'}
-
-    def invoke(self, context, event):
-        context.window_manager.fileselect_add(self)
-        return {'RUNNING_MODAL'}
-
-
-def menu_func_import(self, context):
-    self.layout.operator(ImportBundler.bl_idname)
-
-
-def menu_func_export(self, context):
-    self.layout.operator(ExportMovieClipBundler.bl_idname)
+        p = context.scene.photogrammetry
+        p.draw(layout)
 
 
 classes = (
-    ImportBundler,
-    ExportMovieClipBundler,
-    BlundlePreferences,
-    DebugSvg,
+    Input_BlenderPropertyGroup,
+    BundlerPropertyGroup,
+    PMVSPropertyGroup,
+    ImageModelerPropertyGroup,
+    PhotogrammetryPropertyGroup,
+    PhotogrammetryPanel,
+    ProcessPhotogrammetryOperator,
+    PhotogrammetryPreferences,
 )
 
 
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
-
-    bpy.types.INFO_MT_file_import.append(menu_func_import)
-    bpy.types.INFO_MT_file_export.append(menu_func_export)
+    bpy.types.Scene.photogrammetry = PointerProperty(type=PhotogrammetryPropertyGroup)
     
     print('[blender-photogrammetry] Platform:', platform.system().lower())
     if platform.system().lower() == 'linux':
@@ -230,26 +157,23 @@ def register():
         addon_dir = os.path.dirname(script_file)
         print('[blender-photogrammetry] Attempting to set execute flag on precompiled binaries in:')
         print(addon_dir)
-
-        def set_execute(dirname):
-            for f in os.listdir(dirname):
-                os.chmod(os.path.join(dirname, f), 0o755)
-
+        
+        targets = ['pmvs', 'RadialUndistort', 'Bundle2PMVS']
         try:
-            for dirname in ['linux32', 'linux64']:
-                set_execute(os.path.join(addon_dir, dirname))
+            for root, dirs, files in os.walk(addon_dir):
+                for f in files:
+                    if any([f.startswith(t) for t in targets]):
+                        os.chmod(os.path.join(root, f), 0o755)
         except Exception as ex:
             print('Unable to set precompiled binaries execute flag.')
             print(ex)
-    
-    
+
+
 def unregister():
-    bpy.types.INFO_MT_file_import.remove(menu_func_import)
-    bpy.types.INFO_MT_file_export.remove(menu_func_export)
-    
     for cls in classes:
         bpy.utils.unregister_class(cls)
-    
-    
+    del bpy.types.Scene.photogrammetry
+
+
 if __name__ == "__main__":
     register()
