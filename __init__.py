@@ -31,6 +31,9 @@ from .imagemodeler.extract import extract as extract_imagemodeler
 from .pmvs.groups import PMVSPropertyGroup
 from .pmvs.load import load as load_pmvs
 
+from .colmap.groups import COLMAPPropertyGroup
+from .colmap.load import load as load_colmap
+
 
 class PhotogrammetryPreferences(AddonPreferences):
     bl_idname = __name__
@@ -78,6 +81,8 @@ class ProcessPhotogrammetryOperator(bpy.types.Operator):
                 load_bundler(load_props, data)
             if p.output == 'out_pmvs':
                 load_pmvs(load_props, data)
+            if p.output == 'out_colmap':
+                load_colmap(load_props, data)
 
         return{'FINISHED'}    
 
@@ -102,6 +107,7 @@ class PhotogrammetryPropertyGroup(PropertyGroup):
                          ), default='out_pmvs')
     out_bundler = PointerProperty(type=BundlerPropertyGroup)
     out_pmvs = PointerProperty(type=PMVSPropertyGroup)
+    out_colmap = PointerProperty(type=COLMAPPropertyGroup)
     
     def draw(self, layout):
         layout.prop(self, 'input')
@@ -138,6 +144,7 @@ classes = (
     Input_BlenderPropertyGroup,
     BundlerPropertyGroup,
     PMVSPropertyGroup,
+    COLMAPPropertyGroup,
     ImageModelerPropertyGroup,
     PhotogrammetryPropertyGroup,
     PhotogrammetryPanel,
