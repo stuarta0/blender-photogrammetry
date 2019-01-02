@@ -2,7 +2,7 @@ import bpy
 import os
 import shutil
 from math import floor
-
+from pprint import pprint
 
 def convert_image(filepath, target):
     """ Creates a scene specifically for saving an image as JPG """
@@ -31,13 +31,15 @@ def load(properties, data, *args, **kwargs):
     dirpath = bpy.path.abspath(properties.dirpath)
 
     cameras = data['cameras']
+    camera_keys = list(cameras.keys())
     trackers = data['trackers']
 
     if not os.path.exists(dirpath):
         os.makedirs(dirpath)
 
     # copy and convert all images into bundler folder
-    for camera in cameras.values():
+    for idx, key in enumerate(camera_keys):
+        camera = cameras[key]
         filepath = camera['filename']
         target = os.path.join(dirpath, os.path.splitext(os.path.basename(filepath))[0] + '.jpg')
         convert_image(filepath, target)
@@ -53,7 +55,8 @@ def load(properties, data, *args, **kwargs):
     with open(os.path.join(dirpath, 'bundle.out'), 'w+') as f:
         f.write('# Bundle file v0.3\n')
         f.write('{} {}\n'.format(len(cameras.items()), len(trackers.items())))
-        for camera in cameras.values():
+        for idx, key in enumerate(camera_keys):
+            camera = cameras[key]
             f.write('{f} {k[0]} {k[1]}\n'.format(**camera))
             f.write('{} {} {}\n'.format(*camera['R'][0]))
             f.write('{} {} {}\n'.format(*camera['R'][1]))
@@ -66,17 +69,18 @@ def load(properties, data, *args, **kwargs):
             f.write('{} {} {}\n'.format(*track['rgb']))
             # calculate view list
             visible_in = {}
-            for cid, camera in cameras.items():
+            for key, camera in cameras.items():
                 if tid in camera['trackers']:
-                    visible_in[cid] = camera['trackers'][tid]  # visible_in[camera 4]: (x, y)
+                    visible_in[key] = camera['trackers'][tid]  # visible_in[camera 4]: (x, y)
+            
             f.write('{count}'.format(count=len(visible_in.items())))
-            for cid, co in visible_in.items():
+            for camera_key, co in visible_in.items():
                 # The pixel positions are floating point numbers in a coordinate system where the origin is the center of the image, 
                 # the x-axis increases to the right, and the y-axis increases towards the top of the image. Thus, (-w/2, -h/2) is 
                 # the lower-left corner of the image, and (w/2, h/2) is the top-right corner (where w and h are the width and height of the image).
                 # http://www.cs.cornell.edu/~snavely/bundler/bundler-v0.4-manual.html
                 f.write(' {idx} {sift} {co[0]} {co[1]}'.format(
-                    idx=cid,
+                    idx=camera_keys.index(camera_key),
                     sift=sift,
                     co=co,))
                 sift += 1
