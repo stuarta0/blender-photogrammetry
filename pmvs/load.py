@@ -89,8 +89,8 @@ def prepare_workspace(properties, data):
         with open(options_path, 'w+') as f:
             f.writelines(lines)
 
-        return options_path
-        
+        return os.path.join(dirpath, target, options_path)
+
     finally:
         os.chdir(cwd)
 
@@ -102,6 +102,7 @@ def load(properties, data, *args, **kwargs):
     ext = '.exe' if osname == 'windows' else ''
 
     options_path = prepare_workspace(properties, data)
+    os.chdir(os.path.dirname(options_path))
     subprocess.call([os.path.join(binpath, 'pmvs2{}'.format(ext)), '.{}'.format(os.sep), os.path.basename(options_path), ])
 
     model = os.path.join('models', 'reconstruction.ply')
