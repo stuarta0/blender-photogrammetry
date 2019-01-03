@@ -15,75 +15,93 @@ class BundlerProperties(object):
         self.dirpath = dirpath
 
 
-def load(properties, data, *args, **kwargs):
-    #def bundle2pmvs(bin_path, bundle_path, target_dir, pmvs_options):
+def prepare_workspace(properties, data):
+    """
+    Prepares a PMVS workspace.
+    :returns: Path to the PMVS options file
+    """
     osname = platform.system().lower()
     dirpath = bpy.path.abspath(properties.dirpath)
     binpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), osname)
     target = 'pmvs' + os.sep
     ext = '.exe' if osname == 'windows' else ''
-    
+
     # running PMVS requires transforming to Bundler first
     load_bundler(BundlerProperties(dirpath=dirpath), data)
 
-    os.chdir(dirpath)
-    subprocess.call([os.path.join(binpath, 'Bundle2PMVS{}'.format(ext)), 'list.txt', 'bundle.out', target, ])
-    subprocess.call([os.path.join(binpath, 'RadialUndistort{}'.format(ext)), 'list.txt', 'bundle.out', target, ])
+    cwd = os.getcwd()
+    try:
+        os.chdir(dirpath)
+        subprocess.call([os.path.join(binpath, 'Bundle2PMVS{}'.format(ext)), 'list.txt', 'bundle.out', target, ])
+        subprocess.call([os.path.join(binpath, 'RadialUndistort{}'.format(ext)), 'list.txt', 'bundle.out', target, ])
 
-    def mkdir(path):
-        if not os.path.exists(path):
-            os.mkdir(path)
+        def mkdir(path):
+            if not os.path.exists(path):
+                os.mkdir(path)
 
-    mkdir(os.path.join(target, 'models'))
-    mkdir(os.path.join(target, 'txt'))
-    mkdir(os.path.join(target, 'visualize'))
+        mkdir(os.path.join(target, 'models'))
+        mkdir(os.path.join(target, 'txt'))
+        mkdir(os.path.join(target, 'visualize'))
 
-    with open(os.path.join(target, 'list.rd.txt'), 'r') as f:
-        images = f.readlines()
+        with open(os.path.join(target, 'list.rd.txt'), 'r') as f:
+            images = f.readlines()
 
-    # copy 00000000.txt to txt\00000000.txt
-    # copy image.rd.jpg to visualize\00000000.jpg
+        # copy 00000000.txt to txt\00000000.txt
+        # copy image.rd.jpg to visualize\00000000.jpg
 
-    # v0.3 format
-    #int_format = '{:0>4}'
+        # v0.3 format
+        #int_format = '{:0>4}'
 
-    # v0.4 format
-    int_format = '{:0>8}'
+        # v0.4 format
+        int_format = '{:0>8}'
 
-    for i, path in enumerate(images):
-        shutil.move(
-            os.path.join(target, (int_format + '.txt').format(i)),
-            os.path.join(target, 'txt', (int_format + '.txt').format(i)))
-        shutil.move(
-            os.path.join(target, '{}.rd.jpg'.format(os.path.basename(os.path.splitext(path)[0]))),
-            os.path.join(target, 'visualize', (int_format + '.jpg').format(i)))
+        for i, path in enumerate(images):
+            shutil.move(
+                os.path.join(target, (int_format + '.txt').format(i)),
+                os.path.join(target, 'txt', (int_format + '.txt').format(i)))
+            shutil.move(
+                os.path.join(target, '{}.rd.jpg'.format(os.path.basename(os.path.splitext(path)[0]))),
+                os.path.join(target, 'visualize', (int_format + '.jpg').format(i)))
 
-    # rewrite list.txt to include path to visualize\00000000.jpg
-    with open(os.path.join(target, 'list.rd.txt'), 'w+') as f:
-        f.writelines([('visualize\\' + int_format + '.jpg\n').format(i) for i, data in enumerate(images)])
+        # rewrite list.txt to include path to visualize\00000000.jpg
+        with open(os.path.join(target, 'list.rd.txt'), 'w+') as f:
+            f.writelines([('visualize\\' + int_format + '.jpg\n').format(i) for i, data in enumerate(images)])
 
-    # rewrite pmvs_options.txt to skip vis.dat as we won't be using cmvs here
-    pmvs_options = {
-        'level': properties.level,
-        'csize': properties.csize,
-        'threshold': properties.threshold,
-        'wsize': properties.wsize,
-        'minImageNum': properties.minImageNum,
-        'useVisData': 0,
-    }
-    pattern = re.compile(r'^([^\s]+)\s')
-    with open(os.path.join(target, 'pmvs_options.txt'), 'r') as f:
-        lines = f.readlines()
-        for i, line in enumerate(lines):
-            match = pattern.search(line)
-            if match and match.group(1) in pmvs_options:
-                lines[i] = '{key} {value}\n'.format(key=match.group(1), value=pmvs_options[match.group(1)])
-    
-    os.chdir(target)
-    options_path = 'reconstruction'
-    with open(options_path, 'w+') as f:
-        f.writelines(lines)
+        # rewrite pmvs_options.txt to skip vis.dat as we won't be using cmvs here
+        pmvs_options = {
+            'level': properties.level,
+            'csize': properties.csize,
+            'threshold': properties.threshold,
+            'wsize': properties.wsize,
+            'minImageNum': properties.minImageNum,
+            'useVisData': 0,
+        }
+        pattern = re.compile(r'^([^\s]+)\s')
+        with open(os.path.join(target, 'pmvs_options.txt'), 'r') as f:
+            lines = f.readlines()
+            for i, line in enumerate(lines):
+                match = pattern.search(line)
+                if match and match.group(1) in pmvs_options:
+                    lines[i] = '{key} {value}\n'.format(key=match.group(1), value=pmvs_options[match.group(1)])
+        
+        os.chdir(target)
+        options_path = 'reconstruction'
+        with open(options_path, 'w+') as f:
+            f.writelines(lines)
 
+        return options_path
+        
+    finally:
+        os.chdir(cwd)
+
+
+def load(properties, data, *args, **kwargs):
+    #def bundle2pmvs(bin_path, bundle_path, target_dir, pmvs_options):
+    osname = platform.system().lower()
+    binpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), osname)
+    ext = '.exe' if osname == 'windows' else ''
+
+    options_path = prepare_workspace(properties, data)
     subprocess.call([os.path.join(binpath, 'pmvs2{}'.format(ext)), '.{}'.format(os.sep), os.path.basename(options_path), ])
 
     model = os.path.join('models', 'reconstruction.ply')
