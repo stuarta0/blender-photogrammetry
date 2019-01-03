@@ -4,6 +4,8 @@ import subprocess
 import shutil
 import platform
 
+import bpy
+
 from ..pmvs.load import prepare_workspace
 
 

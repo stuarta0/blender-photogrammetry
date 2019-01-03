@@ -19,7 +19,7 @@ Once enabled, the photogrammetry settings can be found in the Properties panel >
 * **Blender**: From the given input, create cameras and mesh with vertices representing the point cloud from the input.
 * **Bundler**: Output a bundle.out, list.txt and associated images to use with other photogrammetry tools.
 * **PMVS**: Output the bundler file format, then run PMVS2 dense reconstruction on the dataset, resulting in a .ply point cloud.
-* **COLMAP**: Output to a COLMAP workspace, run COLMAP dense reconstruction and meshing, resulting in a .ply point cloud and .ply mesh. *Only available with CUDA GPUs*
+* **COLMAP**: Output to a COLMAP workspace, run COLMAP dense reconstruction and meshing, resulting in a .ply point cloud and .ply mesh. *Only available with CUDA GPUs on Windows*
 
 **Note:** Since inputs are outputs can be mixed and matched, this addon can be used as a convertor between different photogrammetry formats (with the added benefit of having Blender integration).
 
