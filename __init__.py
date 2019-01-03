@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Photogrammetry Processing",
     "author": "Stuart Attenborrow",
-    "version": (0, 0, 1),
+    "version": (1, 0, 0),
     "blender": (2, 79, 0),
     "location": "Properties > Scene",
     "description": "Provides the ability to process data in various photogrammetry tools, including blender's motion tracking output",
