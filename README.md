@@ -19,7 +19,7 @@ Once enabled, the photogrammetry settings can be found in the Properties panel >
 * **Blender**: From the given input, create cameras and mesh with vertices representing the point cloud from the input.
 * **Bundler**: Output a bundle.out, list.txt and associated images to use with other photogrammetry tools.
 * **PMVS**: Output the bundler file format, then run PMVS2 dense reconstruction on the dataset, resulting in a .ply point cloud.
-* **COLMAP**: Output to a COLMAP workspace, run COLMAP dense reconstruction and meshing, resulting in a .ply point cloud. *Only available with CUDA GPUs on Windows*
+* **COLMAP**: Output to a PMVS workspace, then run COLMAP dense reconstruction, resulting in a .ply point cloud. *Only available with CUDA GPUs on Windows*
 
 **Note:** Since inputs are outputs can be mixed and matched, this addon can be used as a convertor between different photogrammetry formats (with the added benefit of having Blender integration).
 
@@ -38,6 +38,12 @@ Precompiled binaries are provided for Linux and Windows on x86_64 hardware only.
 If you'd like more platform support (like Mac), please compile the supporting binaries (Bundler, PMVS, COLMAP) and send through a pull request so others may benefit.
 
 If you run into issues on linux, you may need to install ```libjpeg62``` and ```libgfortran3```.
+
+## Roadmap
+
+* COLMAP is able to generate a delaunay and poisson mesh, but requires a sparse workspace in COLMAP format. Since the current dense reconstruction uses the PMVS workspace, we can't currently generate a mesh.
+* Add Blender 2.8 support
+* Enable UI updates during processing if Blender 2.8 supports it (not feasible with Blender 2.79b)
 
 ## Sources
 
