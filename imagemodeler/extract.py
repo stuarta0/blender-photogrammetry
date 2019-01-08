@@ -48,11 +48,16 @@ def extract(properties, *args, **kwargs):
             'rgb': (0, 0, 0),
         }
     
-    cinf = doc.find('CINF').attrib
+    cinfs = {}
+    for cinf in doc.findall('CINF'):
+        cinfs[cinf.attrib['i']] = cinf.attrib
+    # cinf = doc.find('CINF').attrib
 
     for shot in doc.findall('SHOT'):
         cfrm = shot.find('CFRM')
+        cinf = cinfs.get(cfrm.attrib['cf'], {})
         intrinsics = cfrm.attrib
+        intrinsics.setdefault('rd', cinf.get('rd', 0))
         extrinsics = {
             'T': cfrm.find('T').attrib,
             'R': cfrm.find('R').attrib
@@ -80,7 +85,16 @@ def extract(properties, *args, **kwargs):
         # find any filename that exists
         filenames = [fp for fp in [os.path.join(*parts) for parts in zip(imagepaths, [shot.attrib['n'],] * len(imagepaths))] if os.path.exists(fp)]
         if not filenames:
-            raise Exception('Image not found for camera {}: {}'.format(shot.attrib['i'], shot.attrib['n']))
+            # wasn't in a root path, do we search sub directories?
+            if properties.subdirs:
+                for imagepath in imagepaths:
+                    for root, dirs, files in os.walk(imagepath):
+                        if shot.attrib['n'] in files:
+                            filenames = [os.path.join(root, shot.attrib['n'])]
+
+            # still didn't find file?
+            if not filenames:
+                raise Exception('Image not found for camera {}: {}'.format(shot.attrib['i'], shot.attrib['n']))
 
         camera = data['cameras'].setdefault(int(shot.attrib['i']), {
             'filename': filenames[0],
