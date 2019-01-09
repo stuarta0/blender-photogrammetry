@@ -3,6 +3,8 @@ import os
 import bmesh
 from mathutils import Vector, Matrix
 
+from ..utils import set_active_collection
+
 
 def load(properties, data, *args, **kwargs):
     """ Imports photogrammetry data into the current scene.
@@ -10,6 +12,8 @@ def load(properties, data, *args, **kwargs):
     scene = kwargs.get('scene', None)
     if not scene:
         raise Exception('Scene required to load data in blender.load')
+    collection = set_active_collection(**kwargs)
+    camera_collection = set_active_collection(name='Cameras', parent=collection, **kwargs)
 
     if 'resolution' in data and properties.update_render_size:
         scene.render.resolution_x, scene.render.resolution_y = data['resolution']
@@ -29,7 +33,7 @@ def load(properties, data, *args, **kwargs):
         name = os.path.splitext(os.path.basename(camera['filename']))[0]
         cdata = bpy.data.cameras.new(name)
         cam = bpy.data.objects.new(name, cdata)
-        scene.collection.objects.link(cam)
+        camera_collection.objects.link(cam)
 
         # add background images per camera!
         cdata.show_background_images = True
@@ -53,7 +57,7 @@ def load(properties, data, *args, **kwargs):
     mesh = bpy.data.meshes.new("PhotogrammetryPoints")
     obj = bpy.data.objects.new("PhotogrammetryPoints", mesh)
 
-    scene.collection.objects.link(obj)
+    collection.objects.link(obj)
     scene.view_layers[0].objects.active = obj
     obj.select_set(True)
 

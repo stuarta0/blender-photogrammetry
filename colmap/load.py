@@ -7,6 +7,7 @@ import platform
 import bpy
 
 from ..pmvs.load import prepare_workspace
+from ..utils import set_active_collection
 
 
 class PMVSProperties(object):
@@ -66,4 +67,5 @@ def load(properties, data, *args, **kwargs):
         raise Exception('COLMAP stereo_fusion failed, see system console for details')
 
     if os.path.exists(model) and properties.import_points:
+        set_active_collection(**kwargs)
         bpy.ops.import_mesh.ply(filepath=model)

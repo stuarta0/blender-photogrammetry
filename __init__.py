@@ -78,11 +78,11 @@ class ProcessPhotogrammetryOperator(bpy.types.Operator):
             if p.output == 'out_blender':
                 load_blender(load_props, data, scene=scene)
             if p.output == 'out_bundler':
-                load_bundler(load_props, data)
+                load_bundler(load_props, data, scene=scene)
             if p.output == 'out_pmvs':
-                load_pmvs(load_props, data)
+                load_pmvs(load_props, data, scene=scene)
             if p.output == 'out_colmap':
-                load_colmap(load_props, data)
+                load_colmap(load_props, data, scene=scene)
 
         return{'FINISHED'}    
 

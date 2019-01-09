@@ -7,6 +7,7 @@ import platform
 import bpy
 
 from ..bundler.load import load as load_bundler
+from ..utils import set_active_collection
 
 
 class BundlerProperties(object):
@@ -107,6 +108,7 @@ def load(properties, data, *args, **kwargs):
 
     model = os.path.join('models', 'reconstruction.ply')
     if os.path.exists(model) and properties.import_points:
+        set_active_collection(**kwargs)
         bpy.ops.import_mesh.ply(filepath=model)
 
 
