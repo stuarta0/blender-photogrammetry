@@ -2,7 +2,7 @@ bl_info = {
     "name": "Photogrammetry Processing",
     "author": "Stuart Attenborrow",
     "version": (1, 0, 0),
-    "blender": (2, 79, 0),
+    "blender": (2, 80, 0),
     "location": "Properties > Scene",
     "description": "Provides the ability to process data in various photogrammetry tools, including blender's motion tracking output",
     "wiki_url": "https://www.github.com/stuarta0/blender-photogrammetry",
@@ -17,7 +17,7 @@ from bpy.props import PointerProperty, IntProperty, FloatProperty, StringPropert
 from bpy.types import AddonPreferences, PropertyGroup, Operator
 from bpy_extras.io_utils import ExportHelper, ImportHelper
 
-from .blender.groups import Input_BlenderPropertyGroup
+from .blender.groups import Input_BlenderPropertyGroup, Output_BlenderPropertyGroup
 from .blender.extract import extract as extract_blender
 from .blender.load import load as load_blender
 
@@ -37,7 +37,7 @@ from .colmap.load import load as load_colmap
 
 class PhotogrammetryPreferences(AddonPreferences):
     bl_idname = __name__
-    platform = StringProperty(
+    platform: StringProperty(
         name='Platform',
         description='Path to the binaries for this platform in the format {os}',
         default=platform.system().lower()
@@ -90,24 +90,25 @@ class ProcessPhotogrammetryOperator(bpy.types.Operator):
 # To change over to a dynamic I/O architecture (where formats can be added/removed as needed), see here:
 # https://hamaluik.com/posts/dynamic-blender-properties/
 class PhotogrammetryPropertyGroup(PropertyGroup):
-    input = EnumProperty(name='From', items=(
+    input: EnumProperty(name='From', items=(
                             ('in_blender', 'Blender Motion Tracking', 'Use tracking data from current scene'),
                             ('in_bundler', 'Bundler', 'Read a Bundler OUT file'),
                             ('in_rzi', 'ImageModeler', 'Read an ImageModeler RZI file'),
                         ), default='in_blender')
-    in_blender = PointerProperty(type=Input_BlenderPropertyGroup)
-    in_bundler = PointerProperty(type=BundlerPropertyGroup)
-    in_rzi = PointerProperty(type=ImageModelerPropertyGroup)
+    in_blender: PointerProperty(type=Input_BlenderPropertyGroup)
+    in_bundler: PointerProperty(type=BundlerPropertyGroup)
+    in_rzi: PointerProperty(type=ImageModelerPropertyGroup)
                         
-    output = EnumProperty(name='To', items=(
+    output: EnumProperty(name='To', items=(
                              ('out_blender', 'Blender', 'Import data into current scene'),
                              ('out_bundler', 'Bundler', 'Output images and bundle.out'),
                              ('out_pmvs', 'PMVS', 'Use PMVS2 to generate a dense point cloud'),
                              ('out_colmap', 'COLMAP', 'Use COLMAP to generate a dense point cloud and reconstructed mesh'),
                          ), default='out_pmvs')
-    out_bundler = PointerProperty(type=BundlerPropertyGroup)
-    out_pmvs = PointerProperty(type=PMVSPropertyGroup)
-    out_colmap = PointerProperty(type=COLMAPPropertyGroup)
+    out_blender: PointerProperty(type=Output_BlenderPropertyGroup)
+    out_bundler: PointerProperty(type=BundlerPropertyGroup)
+    out_pmvs: PointerProperty(type=PMVSPropertyGroup)
+    out_colmap: PointerProperty(type=COLMAPPropertyGroup)
     
     def draw(self, layout):
         layout.prop(self, 'input')
@@ -142,6 +143,7 @@ class PhotogrammetryPanel(bpy.types.Panel):
 
 classes = (
     Input_BlenderPropertyGroup,
+    Output_BlenderPropertyGroup,
     BundlerPropertyGroup,
     PMVSPropertyGroup,
     COLMAPPropertyGroup,
