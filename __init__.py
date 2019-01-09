@@ -1,12 +1,12 @@
 bl_info = {
-    "name": "Photogrammetry Processing",
+    "name": "Dense Reconstruction",
     "author": "Stuart Attenborrow",
     "version": (1, 0, 0),
     "blender": (2, 80, 0),
     "location": "Properties > Scene",
     "description": "Provides the ability to process data in various photogrammetry tools, including blender's motion tracking output",
     "wiki_url": "https://www.github.com/stuarta0/blender-photogrammetry",
-    "category": "Motion Tracking",
+    "category": "Photogrammetry",
 }
 
 import platform
@@ -17,21 +17,21 @@ from bpy.props import PointerProperty, IntProperty, FloatProperty, StringPropert
 from bpy.types import AddonPreferences, PropertyGroup, Operator
 from bpy_extras.io_utils import ExportHelper, ImportHelper
 
-from .blender.groups import Input_BlenderPropertyGroup, Output_BlenderPropertyGroup
+from .blender.groups import PHOTOGRAMMETRY_PG_input_blender, PHOTOGRAMMETRY_PG_output_blender
 from .blender.extract import extract as extract_blender
 from .blender.load import load as load_blender
 
-from .bundler.groups import BundlerPropertyGroup
+from .bundler.groups import PHOTOGRAMMETRY_PG_bundler
 from .bundler.extract import extract as extract_bundler
 from .bundler.load import load as load_bundler
 
-from .imagemodeler.groups import ImageModelerPropertyGroup
+from .imagemodeler.groups import PHOTOGRAMMETRY_PG_image_modeller
 from .imagemodeler.extract import extract as extract_imagemodeler
 
-from .pmvs.groups import PMVSPropertyGroup
+from .pmvs.groups import PHOTOGRAMMETRY_PG_pmvs
 from .pmvs.load import load as load_pmvs
 
-from .colmap.groups import COLMAPPropertyGroup
+from .colmap.groups import PHOTOGRAMMETRY_PG_colmap
 from .colmap.load import load as load_colmap
 
 
@@ -49,7 +49,7 @@ class PhotogrammetryPreferences(AddonPreferences):
         layout.label(text="Valid platforms are 'linux' or 'windows'.")
 
 
-class ProcessPhotogrammetryOperator(bpy.types.Operator):
+class PHOTOGRAMMETRY_OT_process(bpy.types.Operator):
     bl_idname = "photogrammetry.process"
     bl_label = "Process photogrammetry from current scene settings"
 
@@ -89,15 +89,15 @@ class ProcessPhotogrammetryOperator(bpy.types.Operator):
 
 # To change over to a dynamic I/O architecture (where formats can be added/removed as needed), see here:
 # https://hamaluik.com/posts/dynamic-blender-properties/
-class PhotogrammetryPropertyGroup(PropertyGroup):
+class PHOTOGRAMMETRY_PG_master(PropertyGroup):
     input: EnumProperty(name='From', items=(
                             ('in_blender', 'Blender Motion Tracking', 'Use tracking data from current scene'),
                             ('in_bundler', 'Bundler', 'Read a Bundler OUT file'),
                             ('in_rzi', 'ImageModeler', 'Read an ImageModeler RZI file'),
                         ), default='in_blender')
-    in_blender: PointerProperty(type=Input_BlenderPropertyGroup)
-    in_bundler: PointerProperty(type=BundlerPropertyGroup)
-    in_rzi: PointerProperty(type=ImageModelerPropertyGroup)
+    in_blender: PointerProperty(type=PHOTOGRAMMETRY_PG_input_blender)
+    in_bundler: PointerProperty(type=PHOTOGRAMMETRY_PG_bundler)
+    in_rzi: PointerProperty(type=PHOTOGRAMMETRY_PG_image_modeller)
                         
     output: EnumProperty(name='To', items=(
                              ('out_blender', 'Blender', 'Import data into current scene'),
@@ -105,12 +105,13 @@ class PhotogrammetryPropertyGroup(PropertyGroup):
                              ('out_pmvs', 'PMVS', 'Use PMVS2 to generate a dense point cloud'),
                              ('out_colmap', 'COLMAP', 'Use COLMAP to generate a dense point cloud and reconstructed mesh'),
                          ), default='out_pmvs')
-    out_blender: PointerProperty(type=Output_BlenderPropertyGroup)
-    out_bundler: PointerProperty(type=BundlerPropertyGroup)
-    out_pmvs: PointerProperty(type=PMVSPropertyGroup)
-    out_colmap: PointerProperty(type=COLMAPPropertyGroup)
+    out_blender: PointerProperty(type=PHOTOGRAMMETRY_PG_output_blender)
+    out_bundler: PointerProperty(type=PHOTOGRAMMETRY_PG_bundler)
+    out_pmvs: PointerProperty(type=PHOTOGRAMMETRY_PG_pmvs)
+    out_colmap: PointerProperty(type=PHOTOGRAMMETRY_PG_colmap)
     
     def draw(self, layout):
+        layout.use_property_split = True # Active single-column layout
         layout.prop(self, 'input')
         try:
             getattr(self, self.input).draw(layout)
@@ -128,8 +129,7 @@ class PhotogrammetryPropertyGroup(PropertyGroup):
         layout.operator("photogrammetry.process", text='Process')
 
 
-class PhotogrammetryPanel(bpy.types.Panel):
-    bl_idname = "photogrammetry.settings"
+class PHOTOGRAMMETRY_PT_settings(bpy.types.Panel):
     bl_label = "Photogrammetry Tools"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
@@ -142,15 +142,15 @@ class PhotogrammetryPanel(bpy.types.Panel):
 
 
 classes = (
-    Input_BlenderPropertyGroup,
-    Output_BlenderPropertyGroup,
-    BundlerPropertyGroup,
-    PMVSPropertyGroup,
-    COLMAPPropertyGroup,
-    ImageModelerPropertyGroup,
-    PhotogrammetryPropertyGroup,
-    PhotogrammetryPanel,
-    ProcessPhotogrammetryOperator,
+    PHOTOGRAMMETRY_PG_input_blender,
+    PHOTOGRAMMETRY_PG_output_blender,
+    PHOTOGRAMMETRY_PG_bundler,
+    PHOTOGRAMMETRY_PG_pmvs,
+    PHOTOGRAMMETRY_PG_colmap,
+    PHOTOGRAMMETRY_PG_image_modeller,
+    PHOTOGRAMMETRY_PG_master,
+    PHOTOGRAMMETRY_PT_settings,
+    PHOTOGRAMMETRY_OT_process,
     PhotogrammetryPreferences,
 )
 
@@ -158,7 +158,7 @@ classes = (
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
-    bpy.types.Scene.photogrammetry = PointerProperty(type=PhotogrammetryPropertyGroup)
+    bpy.types.Scene.photogrammetry = PointerProperty(type=PHOTOGRAMMETRY_PG_master)
     
     print('[blender-photogrammetry] Platform:', platform.system().lower())
     if platform.system().lower() == 'linux':
