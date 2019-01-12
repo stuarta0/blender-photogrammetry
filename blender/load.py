@@ -43,6 +43,8 @@ def load(properties, data, *args, **kwargs):
             image_path = bpy.path.relpath(image_path)
         img = bpy.data.images.load(image_path)
         bg.image = img
+        bg.alpha = properties.camera_alpha
+        bg.display_depth = properties.camera_display_depth
 
         # set parameters
         cam.location = translation
