@@ -10,7 +10,7 @@ def create_render_scene(scene, clip):
     sc.frame_start = scene.frame_start
     sc.frame_end = scene.frame_end
     
-    sc.objects.link(scene.camera)
+    sc.collection.objects.link(scene.camera)
     sc.camera = scene.camera
     sc.active_clip = clip
     
@@ -112,8 +112,8 @@ def extract(properties, *args, **kwargs):
         # <blender source>/release/scripts/startup/bl_operators/clip.py, CLIP_OT_bundles_to_mesh()
         reconstruction = tracking.objects.active.reconstruction
         framenr = scene.frame_current - clip.frame_start + 1
-        reconstructed_matrix = reconstruction.cameras.matrix_from_frame(framenr)
-        mw = scene.camera.matrix_world * reconstructed_matrix.inverted()
+        reconstructed_matrix = reconstruction.cameras.matrix_from_frame(frame=framenr)
+        mw = scene.camera.matrix_world @ reconstructed_matrix.inverted()
 
         for cid, f in enumerate(frame_range):
             # render each movie clip frame to jpeg still
@@ -140,7 +140,7 @@ def extract(properties, *args, **kwargs):
             R = scene.camera.matrix_world.to_euler('XYZ').to_matrix()
             R.transpose()
             c = scene.camera.matrix_world.translation.copy()
-            t = -1 * R * c
+            t = -1 * R @ c
             cameras.setdefault(cid, {
                 'filename': filename,
                 'frame': f,
@@ -179,7 +179,7 @@ def extract(properties, *args, **kwargs):
         trackers = {}
         for idx, track in enumerate(active_tracks):
             trackers[idx] = {
-                'co': tuple(mw * track.bundle),
+                'co': tuple(mw @ track.bundle),
                 'rgb': (0, 0, 0),
             }
             # loop over every camera that this track is visible in
