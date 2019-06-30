@@ -84,11 +84,11 @@ class ProcessPhotogrammetryOperator(bpy.types.Operator):
             if p.output == 'out_colmap':
                 load_colmap(load_props, data)
 
-        return{'FINISHED'}    
+        return{'FINISHED'}
 
 
 # To change over to a dynamic I/O architecture (where formats can be added/removed as needed), see here:
-# https://hamaluik.com/posts/dynamic-blender-properties/
+# https://blog.hamaluik.ca/posts/dynamic-blender-properties/
 class PhotogrammetryPropertyGroup(PropertyGroup):
     input = EnumProperty(name='From', items=(
                             ('in_blender', 'Blender Motion Tracking', 'Use tracking data from current scene'),
