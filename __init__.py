@@ -88,7 +88,7 @@ class PHOTOGRAMMETRY_OT_process(bpy.types.Operator):
 
 
 # To change over to a dynamic I/O architecture (where formats can be added/removed as needed), see here:
-# https://hamaluik.com/posts/dynamic-blender-properties/
+# https://blog.hamaluik.ca/posts/dynamic-blender-properties/
 class PHOTOGRAMMETRY_PG_master(PropertyGroup):
     input: EnumProperty(name='From', items=(
                             ('in_blender', 'Blender Motion Tracking', 'Use tracking data from current scene'),
