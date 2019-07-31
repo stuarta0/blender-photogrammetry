@@ -35,20 +35,6 @@ from .colmap.groups import PHOTOGRAMMETRY_PG_colmap
 from .colmap.load import load as load_colmap
 
 
-class PhotogrammetryPreferences(AddonPreferences):
-    bl_idname = __name__
-    platform: StringProperty(
-        name='Platform',
-        description='Path to the binaries for this platform in the format {os}',
-        default=platform.system().lower()
-    )
-    
-    def draw(self, context):
-        layout = self.layout
-        layout.prop(self, "platform")
-        layout.label(text="Valid platforms are 'linux' or 'windows'.")
-
-
 class PHOTOGRAMMETRY_OT_process(bpy.types.Operator):
     bl_idname = "photogrammetry.process"
     bl_label = "Process photogrammetry from current scene settings"
@@ -151,7 +137,6 @@ classes = (
     PHOTOGRAMMETRY_PG_master,
     PHOTOGRAMMETRY_PT_settings,
     PHOTOGRAMMETRY_OT_process,
-    PhotogrammetryPreferences,
 )
 
 

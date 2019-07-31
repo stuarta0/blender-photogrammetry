@@ -7,7 +7,7 @@ import platform
 import bpy
 
 from ..bundler.load import load as load_bundler
-from ..utils import set_active_collection
+from ..utils import set_active_collection, get_binpath_for_module, get_binary_path
 
 
 class BundlerProperties(object):
@@ -21,11 +21,9 @@ def prepare_workspace(properties, data):
     Prepares a PMVS workspace.
     :returns: Path to the PMVS options file
     """
-    osname = platform.system().lower()
     dirpath = bpy.path.abspath(properties.dirpath)
-    binpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), osname)
+    binpath = get_binpath_for_module(os.path.realpath(__file__))
     target = 'pmvs' + os.sep
-    ext = '.exe' if osname == 'windows' else ''
 
     # running PMVS requires transforming to Bundler first
     load_bundler(BundlerProperties(dirpath=dirpath), data)
@@ -33,8 +31,8 @@ def prepare_workspace(properties, data):
     cwd = os.getcwd()
     try:
         os.chdir(dirpath)
-        subprocess.call([os.path.join(binpath, 'Bundle2PMVS{}'.format(ext)), 'list.txt', 'bundle.out', target, ])
-        subprocess.call([os.path.join(binpath, 'RadialUndistort{}'.format(ext)), 'list.txt', 'bundle.out', target, ])
+        subprocess.call([get_binary_path(binpath, 'Bundle2PMVS'), 'list.txt', 'bundle.out', target, ])
+        subprocess.call([get_binary_path(binpath, 'RadialUndistort'), 'list.txt', 'bundle.out', target, ])
 
         def mkdir(path):
             if not os.path.exists(path):

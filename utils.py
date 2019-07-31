@@ -1,4 +1,20 @@
+import os
 import bpy
+import platform
+
+
+osname = platform.system().lower()
+
+
+class PhotogrammetryModule(object):
+    def __init__(self, name, description, property_group, func):
+        self.name = name
+        self.description = description
+        self.property_group = property_group
+        self.func = func
+    
+    def __str__(self):
+        return self.name
 
 
 def find_layer_collection(layer_collection, collection_name, parent_name=None):
@@ -37,4 +53,27 @@ def set_active_collection(name='Photogrammetry', parent=None, **kwargs):
             (parent or scene.collection).children.link(col)
         set_active_layer_collection(scene.view_layers, col.name, parent.name if parent else None)
         return col
+    return None
+
+
+def get_binpath_for_module(module_name):
+    module_root = module_name
+    if not os.path.exists(module_root):
+        module_root = os.path.join(os.path.dirname(os.path.realpath(__file__)), module_name)
+    paths = [
+        os.path.join(module_root, 'bin'), # packaged release for each platform
+        os.path.join(module_root, osname), # development; github clone
+    ]
+
+    for p in paths:
+        if os.path.exists(p):
+            return p
+    return None
+
+
+def get_binary_path(module_binary_path, binary_name):
+    for ext in ['', '.exe']:
+        p = os.path.join(module_binary_path, f'{binary_name}{ext}')
+        if os.path.exists(p):
+            return p
     return None

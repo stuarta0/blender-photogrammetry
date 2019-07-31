@@ -1,6 +1,6 @@
 # blender-photogrammetry
 
-A photogrammetry addon for Blender that allows conversion and processing between a number of photogrammetry formats, in addition to providing dense reconstruction straight from Blender's camera tracker. 
+A photogrammetry addon for Blender 2.79 and 2.80 that allows conversion and processing between a number of photogrammetry formats, in addition to providing dense reconstruction straight from Blender's camera tracker. 
 
 In the interests of remaining user friendly, this addon comes with all precompiled binaries required to process data.
 
