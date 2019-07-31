@@ -13,7 +13,7 @@ class PhotogrammetryModule(object):
         self.property_group = property_group
         self.func = func
     
-    def __str__(self):
+    def __unicode__(self):
         return self.name
 
 
@@ -58,6 +58,8 @@ def set_active_collection(name='Photogrammetry', parent=None, **kwargs):
 
 def get_binpath_for_module(module_name):
     module_root = module_name
+    if os.path.isfile(module_name):
+        module_root = os.path.dirname(module_name)
     if not os.path.exists(module_root):
         module_root = os.path.join(os.path.dirname(os.path.realpath(__file__)), module_name)
     paths = [
@@ -72,6 +74,8 @@ def get_binpath_for_module(module_name):
 
 
 def get_binary_path(module_binary_path, binary_name):
+    if not module_binary_path:
+        return None
     for ext in ['', '.exe']:
         p = os.path.join(module_binary_path, f'{binary_name}{ext}')
         if os.path.exists(p):
