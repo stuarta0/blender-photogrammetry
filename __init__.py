@@ -4,7 +4,7 @@ bl_info = {
     "version": (1, 0, 0),
     "blender": (2, 80, 0),
     "location": "Properties > Scene",
-    "description": "Provides the ability to process data in various photogrammetry tools, including blender's motion tracking output",
+    "description": "Provides the ability to generate dense point clouds using various photogrammetry tools, from inputs including Blender's motion tracking output",
     "wiki_url": "https://www.github.com/stuarta0/blender-photogrammetry",
     "category": "Photogrammetry",
 }
@@ -22,7 +22,9 @@ from bpy_extras.io_utils import ExportHelper, ImportHelper
 from .utils import PhotogrammetryModule, get_binpath_for_module, get_binary_path
 
 
-modules = ['blender', 'bundler', 'colmap', 'imagemodeler', 'pmvs', 'nope']
+# modules will exist as directories in the current directory
+# if they're not a python module they'll fail to import and we'll skip them
+modules = [name for name in os.listdir(os.path.dirname(__file__)) if os.path.isdir(os.path.join(os.path.dirname(__file__), name))]
 
 inputs: Dict[str, PhotogrammetryModule] = {}
 outputs: Dict[str, PhotogrammetryModule] = {}
@@ -30,21 +32,27 @@ binaries: List[str] = []
 for m in modules:
     try:
         currentModule = import_module(f'.{m}', __name__)
-    except:
-        # print(f'Photogrammetry module "{m}" not found')
+        importer = getattr(currentModule, 'importer', None)
+        exporter = getattr(currentModule, 'exporter', None)
+        binaryNames = getattr(currentModule, 'binaries', [])
+        if not (importer or exporter):
+            raise AttributeError('Attributes "importer" and/or "exporter" must be defined in module')
+    except Exception as ex:
+        print(f'Problem importing photogrammetry module "{m}": {ex}')
         continue
 
-    currentBinaries = [get_binary_path(get_binpath_for_module(m), binary) for binary in currentModule.binaries or []]
+    currentBinaries = [get_binary_path(get_binpath_for_module(m), name) for name in binaryNames]
     if any([not binpath for binpath in currentBinaries]):
         print(f'Photogrammetry module "{m}" specified binaries that could not be found {currentModule.binaries}')
         continue
     for binpath in currentBinaries:
         binaries.append(binpath)
 
-    if currentModule.importer:
-        inputs.setdefault(f'in_{m}', currentModule.importer)
-    if currentModule.exporter:
-        outputs.setdefault(f'out_{m}', currentModule.exporter)
+    if importer:
+        inputs.setdefault(f'in_{m}', importer)
+    if exporter:
+        outputs.setdefault(f'out_{m}', exporter)
+
 
 class PHOTOGRAMMETRY_OT_process(bpy.types.Operator):
     bl_idname = "photogrammetry.process"
