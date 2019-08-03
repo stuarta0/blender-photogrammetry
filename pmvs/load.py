@@ -95,14 +95,11 @@ def prepare_workspace(properties, data):
 
 
 def load(properties, data, *args, **kwargs):
-    #def bundle2pmvs(bin_path, bundle_path, target_dir, pmvs_options):
-    osname = platform.system().lower()
-    binpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), osname)
-    ext = '.exe' if osname == 'windows' else ''
-
     options_path = prepare_workspace(properties, data)
     os.chdir(os.path.dirname(options_path))
-    subprocess.call([os.path.join(binpath, 'pmvs2{}'.format(ext)), '.{}'.format(os.sep), os.path.basename(options_path), ])
+    
+    binpath = get_binpath_for_module(os.path.realpath(__file__))
+    subprocess.call([get_binary_path(binpath, 'pmvs2'), '.{}'.format(os.sep), os.path.basename(options_path), ])
 
     model = os.path.join('models', 'reconstruction.ply')
     if os.path.exists(model) and properties.import_points:
