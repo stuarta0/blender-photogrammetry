@@ -132,9 +132,11 @@ attributes = {
     "draw": draw_master
 }
 for key, importer in inputs.items():
-    attributes.setdefault(key, PointerProperty(type=importer.property_group))
+    if importer.property_group:
+        attributes.setdefault(key, PointerProperty(type=importer.property_group))
 for key, exporter in outputs.items():
-    attributes.setdefault(key, PointerProperty(type=exporter.property_group))
+    if exporter.property_group:
+        attributes.setdefault(key, PointerProperty(type=exporter.property_group))
 
 PHOTOGRAMMETRY_PG_master = type(
     "PHOTOGRAMMETRY_PG_master",
@@ -155,7 +157,7 @@ class PHOTOGRAMMETRY_PT_settings(bpy.types.Panel):
         p.draw(layout)
 
 
-classes = list(set([i.property_group for i in inputs.values()] + [o.property_group for o in outputs.values()]))
+classes = list(set([i.property_group for i in inputs.values() if i.property_group] + [o.property_group for o in outputs.values() if o.property_group]))
 classes = classes + [
     PHOTOGRAMMETRY_PG_master,
     PHOTOGRAMMETRY_PT_settings,
