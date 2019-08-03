@@ -165,7 +165,6 @@ classes = classes + [
 
 def register():
     for cls in classes:
-        print('register_class({})'.format(cls))
         bpy.utils.register_class(cls)
     bpy.types.Scene.photogrammetry = PointerProperty(type=PHOTOGRAMMETRY_PG_master)
     
