@@ -7,7 +7,7 @@ import platform
 import bpy
 
 from ..pmvs.load import prepare_workspace
-from ..utils import get_binpath_for_module, get_binary_path
+from ..utils import set_active_collection, get_binpath_for_module, get_binary_path
 
 
 class PMVSProperties(object):
@@ -26,8 +26,8 @@ def load(properties, data, *args, **kwargs):
     env = os.environ.copy()
     if platform.system().lower() == 'windows':
         env.update({
-            'PATH': "{binpath}\lib;{path}".format(binpath=binpath, path=env.get('PATH', '')),
-            'QT_PLUGIN_PATH': "{binpath}\lib;{qt_plugin_path}".format(binpath=binpath, qt_plugin_path=env.get('QT_PLUGIN_PATH', ''))
+            'PATH': f"{binpath}\lib;{env.get('PATH', '')}",
+            'QT_PLUGIN_PATH': f"{binpath}\lib;{env.get('QT_PLUGIN_PATH', '')}"
         })
     
     # running COLMAP requires transforming to PMVS first
@@ -63,4 +63,5 @@ def load(properties, data, *args, **kwargs):
         raise Exception('COLMAP stereo_fusion failed, see system console for details')
 
     if os.path.exists(model) and properties.import_points:
+        set_active_collection(**kwargs)
         bpy.ops.import_mesh.ply(filepath=model)

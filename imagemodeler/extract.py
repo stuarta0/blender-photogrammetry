@@ -102,7 +102,7 @@ def extract(properties, *args, **kwargs):
             'k': (-float(intrinsics['rd']),) * 3,
             'c': extrinsics['T'],
             'R': tuple(map(tuple, tuple(extrinsics['R']))),
-            't': tuple(-1 * extrinsics['R'] * extrinsics['T']),
+            't': tuple(-1 * extrinsics['R'] @ extrinsics['T']),
         })
 
         if 'resolution' not in data:

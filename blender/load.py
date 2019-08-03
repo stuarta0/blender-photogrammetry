@@ -3,6 +3,8 @@ import os
 import bmesh
 from mathutils import Vector, Matrix
 
+from ..utils import set_active_collection
+
 
 def load(properties, data, *args, **kwargs):
     """ Imports photogrammetry data into the current scene.
@@ -10,8 +12,10 @@ def load(properties, data, *args, **kwargs):
     scene = kwargs.get('scene', None)
     if not scene:
         raise Exception('Scene required to load data in blender.load')
+    collection = set_active_collection(**kwargs)
+    camera_collection = set_active_collection(name='Cameras', parent=collection, **kwargs)
 
-    if 'resolution' in data:
+    if 'resolution' in data and properties.update_render_size:
         scene.render.resolution_x, scene.render.resolution_y = data['resolution']
 
     for cid, camera in data['cameras'].items():
@@ -23,13 +27,24 @@ def load(properties, data, *args, **kwargs):
         # https://github.com/simonfuhrmann/mve/wiki/Math-Cookbook
         # t = -R * c
         # where c is the real world position as I've calculated, and t is the camera location stored in bundle.out
-        translation = -1 * mrot * Vector(camera['t'])
+        translation = -1 * mrot @ Vector(camera['t'])
         
         # create and link camera
         name = os.path.splitext(os.path.basename(camera['filename']))[0]
         cdata = bpy.data.cameras.new(name)
         cam = bpy.data.objects.new(name, cdata)
-        scene.objects.link(cam)
+        camera_collection.objects.link(cam)
+
+        # add background images per camera!
+        cdata.show_background_images = True
+        bg = cdata.background_images.new()
+        image_path = camera['filename']
+        if properties.relative_paths:
+            image_path = bpy.path.relpath(image_path)
+        img = bpy.data.images.load(image_path)
+        bg.image = img
+        bg.alpha = properties.camera_alpha
+        bg.display_depth = properties.camera_display_depth
 
         # set parameters
         cam.location = translation
@@ -44,9 +59,9 @@ def load(properties, data, *args, **kwargs):
     mesh = bpy.data.meshes.new("PhotogrammetryPoints")
     obj = bpy.data.objects.new("PhotogrammetryPoints", mesh)
 
-    scene.objects.link(obj)
-    scene.objects.active = obj 
-    obj.select = True
+    collection.objects.link(obj)
+    scene.view_layers[0].objects.active = obj
+    obj.select_set(True)
 
     # add all coords from bundler points as vertices
     bm = bmesh.new()

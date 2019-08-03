@@ -2,7 +2,7 @@ bl_info = {
     "name": "Dense Reconstruction",
     "author": "Stuart Attenborrow",
     "version": (1, 0, 0),
-    "blender": (2, 79, 0),
+    "blender": (2, 80, 0),
     "location": "Properties > Scene",
     "description": "Provides the ability to generate dense point clouds using various photogrammetry tools, from inputs including Blender's motion tracking output",
     "wiki_url": "https://www.github.com/stuarta0/blender-photogrammetry",
@@ -12,6 +12,7 @@ bl_info = {
 import platform
 import os
 from importlib import import_module
+from typing import Dict, List
 
 import bpy
 from bpy.props import PointerProperty, IntProperty, FloatProperty, StringProperty, EnumProperty, BoolProperty
@@ -25,32 +26,32 @@ from .utils import PhotogrammetryModule, get_binpath_for_module, get_binary_path
 # if they're not a python module they'll fail to import and we'll skip them
 modules = [name for name in os.listdir(os.path.dirname(__file__)) if os.path.isdir(os.path.join(os.path.dirname(__file__), name))]
 
-inputs = {}
-outputs = {}
-binaries = []
+inputs: Dict[str, PhotogrammetryModule] = {}
+outputs: Dict[str, PhotogrammetryModule] = {}
+binaries: List[str] = []
 for m in modules:
     try:
-        currentModule = import_module('.{}'.format(m), __name__)
+        currentModule = import_module(f'.{m}', __name__)
         importer = getattr(currentModule, 'importer', None)
         exporter = getattr(currentModule, 'exporter', None)
         binaryNames = getattr(currentModule, 'binaries', [])
         if not (importer or exporter):
             raise AttributeError('Attributes "importer" and/or "exporter" must be defined in module')
     except Exception as ex:
-        print('Problem importing photogrammetry module "{}": {}'.format(m, ex))
+        print(f'Problem importing photogrammetry module "{m}": {ex}')
         continue
 
     currentBinaries = [get_binary_path(get_binpath_for_module(m), name) for name in binaryNames]
     if any([not binpath for binpath in currentBinaries]):
-        print('Photogrammetry module "{}" specified binaries that could not be found {}'.format(m, currentModule.binaries))
+        print(f'Photogrammetry module "{m}" specified binaries that could not be found {currentModule.binaries}')
         continue
     for binpath in currentBinaries:
         binaries.append(binpath)
 
     if importer:
-        inputs.setdefault('in_{}'.format(m), importer)
+        inputs.setdefault(f'in_{m}', importer)
     if exporter:
-        outputs.setdefault('out_{}'.format(m), exporter)
+        outputs.setdefault(f'out_{m}', exporter)
 
 
 class PHOTOGRAMMETRY_OT_process(bpy.types.Operator):
@@ -104,6 +105,7 @@ class PHOTOGRAMMETRY_OT_process(bpy.types.Operator):
 #     out_colmap: PointerProperty(type=PHOTOGRAMMETRY_PG_colmap)
 
 def draw_master(self, layout):
+    layout.use_property_split = True # Active single-column layout
     layout.prop(self, 'input')
     try:
         getattr(self, self.input).draw(layout)
@@ -165,7 +167,6 @@ classes = classes + [
 
 def register():
     for cls in classes:
-        print('register_class({})'.format(cls))
         bpy.utils.register_class(cls)
     bpy.types.Scene.photogrammetry = PointerProperty(type=PHOTOGRAMMETRY_PG_master)
     
