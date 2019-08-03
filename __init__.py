@@ -1,55 +1,59 @@
 bl_info = {
-    "name": "Photogrammetry Processing",
+    "name": "Dense Reconstruction",
     "author": "Stuart Attenborrow",
     "version": (1, 0, 0),
     "blender": (2, 79, 0),
     "location": "Properties > Scene",
-    "description": "Provides the ability to process data in various photogrammetry tools, including blender's motion tracking output",
+    "description": "Provides the ability to generate dense point clouds using various photogrammetry tools, from inputs including Blender's motion tracking output",
     "wiki_url": "https://www.github.com/stuarta0/blender-photogrammetry",
-    "category": "Motion Tracking",
+    "category": "Photogrammetry",
 }
 
 import platform
 import os
+from importlib import import_module
 
 import bpy
 from bpy.props import PointerProperty, IntProperty, FloatProperty, StringProperty, EnumProperty, BoolProperty
 from bpy.types import AddonPreferences, PropertyGroup, Operator
 from bpy_extras.io_utils import ExportHelper, ImportHelper
 
-from .blender.groups import Input_BlenderPropertyGroup
-from .blender.extract import extract as extract_blender
-from .blender.load import load as load_blender
-
-from .bundler.groups import BundlerPropertyGroup
-from .bundler.extract import extract as extract_bundler
-from .bundler.load import load as load_bundler
-
-from .imagemodeler.groups import ImageModelerPropertyGroup
-from .imagemodeler.extract import extract as extract_imagemodeler
-
-from .pmvs.groups import PMVSPropertyGroup
-from .pmvs.load import load as load_pmvs
-
-from .colmap.groups import COLMAPPropertyGroup
-from .colmap.load import load as load_colmap
+from .utils import PhotogrammetryModule, get_binpath_for_module, get_binary_path
 
 
-class PhotogrammetryPreferences(AddonPreferences):
-    bl_idname = __name__
-    platform = StringProperty(
-        name='Platform',
-        description='Path to the binaries for this platform in the format {os}',
-        default=platform.system().lower()
-    )
-    
-    def draw(self, context):
-        layout = self.layout
-        layout.prop(self, "platform")
-        layout.label(text="Valid platforms are 'linux' or 'windows'.")
+# modules will exist as directories in the current directory
+# if they're not a python module they'll fail to import and we'll skip them
+modules = [name for name in os.listdir(os.path.dirname(__file__)) if os.path.isdir(os.path.join(os.path.dirname(__file__), name))]
+
+inputs = {}
+outputs = {}
+binaries = []
+for m in modules:
+    try:
+        currentModule = import_module('.{}'.format(m), __name__)
+        importer = getattr(currentModule, 'importer', None)
+        exporter = getattr(currentModule, 'exporter', None)
+        binaryNames = getattr(currentModule, 'binaries', [])
+        if not (importer or exporter):
+            raise AttributeError('Attributes "importer" and/or "exporter" must be defined in module')
+    except Exception as ex:
+        print('Problem importing photogrammetry module "{}": {}'.format(m, ex))
+        continue
+
+    currentBinaries = [get_binary_path(get_binpath_for_module(m), name) for name in binaryNames]
+    if any([not binpath for binpath in currentBinaries]):
+        print('Photogrammetry module "{}" specified binaries that could not be found {}'.format(m, currentModule.binaries))
+        continue
+    for binpath in currentBinaries:
+        binaries.append(binpath)
+
+    if importer:
+        inputs.setdefault('in_{}'.format(m), importer)
+    if exporter:
+        outputs.setdefault('out_{}'.format(m), exporter)
 
 
-class ProcessPhotogrammetryOperator(bpy.types.Operator):
+class PHOTOGRAMMETRY_OT_process(bpy.types.Operator):
     bl_idname = "photogrammetry.process"
     bl_label = "Process photogrammetry from current scene settings"
 
@@ -60,75 +64,86 @@ class ProcessPhotogrammetryOperator(bpy.types.Operator):
         print('process photogrammetry')
         print(p.input)
         print(p.output)
+
+        if not (p.input in inputs and p.output in outputs):
+            return {'FINISHED'}
+
         extract_props = getattr(p, p.input, None)
         load_props = getattr(p, p.output, None)
 
         from pprint import pprint
-        data = None
-        if p.input == 'in_blender':
-            data = extract_blender(extract_props, scene=scene)
-        elif p.input == 'in_bundler':
-            data = extract_bundler(extract_props)
-        elif p.input == 'in_rzi':
-            data = extract_imagemodeler(extract_props)
-        
+        data = inputs[p.input].func(extract_props, scene=scene)
         pprint(data)
-
         if data:
-            if p.output == 'out_blender':
-                load_blender(load_props, data, scene=scene)
-            if p.output == 'out_bundler':
-                load_bundler(load_props, data)
-            if p.output == 'out_pmvs':
-                load_pmvs(load_props, data)
-            if p.output == 'out_colmap':
-                load_colmap(load_props, data)
+            outputs[p.output].func(load_props, data, scene=scene)
 
-        return{'FINISHED'}
+        return {'FINISHED'}
 
 
-# To change over to a dynamic I/O architecture (where formats can be added/removed as needed), see here:
-# https://blog.hamaluik.ca/posts/dynamic-blender-properties/
-class PhotogrammetryPropertyGroup(PropertyGroup):
-    input = EnumProperty(name='From', items=(
-                            ('in_blender', 'Blender Motion Tracking', 'Use tracking data from current scene'),
-                            ('in_bundler', 'Bundler', 'Read a Bundler OUT file'),
-                            ('in_rzi', 'ImageModeler', 'Read an ImageModeler RZI file'),
-                        ), default='in_blender')
-    in_blender = PointerProperty(type=Input_BlenderPropertyGroup)
-    in_bundler = PointerProperty(type=BundlerPropertyGroup)
-    in_rzi = PointerProperty(type=ImageModelerPropertyGroup)
+# # The following class is generated dynamically based on which modules are present with valid binaries
+# # Concept derived from: https://blog.hamaluik.ca/posts/dynamic-blender-properties/
+# class PHOTOGRAMMETRY_PG_master(PropertyGroup):
+#     input: EnumProperty(name='From', items=(
+#                             ('in_blender', 'Blender Motion Tracking', 'Use tracking data from current scene'),
+#                             ('in_bundler', 'Bundler', 'Read a Bundler OUT file'),
+#                             ('in_rzi', 'ImageModeler', 'Read an ImageModeler RZI file'),
+#                         ), default='in_blender')
+#     in_blender: PointerProperty(type=PHOTOGRAMMETRY_PG_input_blender)
+#     in_bundler: PointerProperty(type=PHOTOGRAMMETRY_PG_bundler)
+#     in_rzi: PointerProperty(type=PHOTOGRAMMETRY_PG_image_modeller)
                         
-    output = EnumProperty(name='To', items=(
-                             ('out_blender', 'Blender', 'Import data into current scene'),
-                             ('out_bundler', 'Bundler', 'Output images and bundle.out'),
-                             ('out_pmvs', 'PMVS', 'Use PMVS2 to generate a dense point cloud'),
-                             ('out_colmap', 'COLMAP', 'Use COLMAP to generate a dense point cloud and reconstructed mesh'),
-                         ), default='out_pmvs')
-    out_bundler = PointerProperty(type=BundlerPropertyGroup)
-    out_pmvs = PointerProperty(type=PMVSPropertyGroup)
-    out_colmap = PointerProperty(type=COLMAPPropertyGroup)
+#     output: EnumProperty(name='To', items=(
+#                              ('out_blender', 'Blender', 'Import data into current scene'),
+#                              ('out_bundler', 'Bundler', 'Output images and bundle.out'),
+#                              ('out_pmvs', 'PMVS', 'Use PMVS2 to generate a dense point cloud'),
+#                              ('out_colmap', 'COLMAP', 'Use COLMAP to generate a dense point cloud and reconstructed mesh'),
+#                          ), default='out_pmvs')
+#     out_blender: PointerProperty(type=PHOTOGRAMMETRY_PG_output_blender)
+#     out_bundler: PointerProperty(type=PHOTOGRAMMETRY_PG_bundler)
+#     out_pmvs: PointerProperty(type=PHOTOGRAMMETRY_PG_pmvs)
+#     out_colmap: PointerProperty(type=PHOTOGRAMMETRY_PG_colmap)
+
+def draw_master(self, layout):
+    layout.prop(self, 'input')
+    try:
+        getattr(self, self.input).draw(layout)
+    except AttributeError:
+        layout.label(text='No options')
     
-    def draw(self, layout):
-        layout.prop(self, 'input')
-        try:
-            getattr(self, self.input).draw(layout)
-        except AttributeError:
-            layout.label(text='No options')
+    layout.separator()
+    layout.prop(self, 'output')
+    try:
+        getattr(self, self.output).draw(layout)
+    except AttributeError:
+        layout.label(text='No options')
         
-        layout.separator()
-        layout.prop(self, 'output')
-        try:
-            getattr(self, self.output).draw(layout)
-        except AttributeError:
-            layout.label(text='No options')
-            
-        layout.separator()
-        layout.operator("photogrammetry.process", text='Process')
+    layout.separator()
+    layout.operator("photogrammetry.process", text='Process')
+
+attributes = {
+    "input": EnumProperty(name='From', items=tuple(
+        (key, importer.name, importer.description) for key, importer in inputs.items()
+    )),
+    "output": EnumProperty(name='To', items=tuple(
+        (key, exporter.name, exporter.description) for key, exporter in outputs.items()
+    )),
+    "draw": draw_master
+}
+for key, importer in inputs.items():
+    if importer.property_group:
+        attributes.setdefault(key, PointerProperty(type=importer.property_group))
+for key, exporter in outputs.items():
+    if exporter.property_group:
+        attributes.setdefault(key, PointerProperty(type=exporter.property_group))
+
+PHOTOGRAMMETRY_PG_master = type(
+    "PHOTOGRAMMETRY_PG_master",
+    (PropertyGroup,),
+    attributes
+)
 
 
-class PhotogrammetryPanel(bpy.types.Panel):
-    bl_idname = "photogrammetry.settings"
+class PHOTOGRAMMETRY_PT_settings(bpy.types.Panel):
     bl_label = "Photogrammetry Tools"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
@@ -140,37 +155,29 @@ class PhotogrammetryPanel(bpy.types.Panel):
         p.draw(layout)
 
 
-classes = (
-    Input_BlenderPropertyGroup,
-    BundlerPropertyGroup,
-    PMVSPropertyGroup,
-    COLMAPPropertyGroup,
-    ImageModelerPropertyGroup,
-    PhotogrammetryPropertyGroup,
-    PhotogrammetryPanel,
-    ProcessPhotogrammetryOperator,
-    PhotogrammetryPreferences,
-)
+classes = list(set([i.property_group for i in inputs.values() if i.property_group] + [o.property_group for o in outputs.values() if o.property_group]))
+classes = classes + [
+    PHOTOGRAMMETRY_PG_master,
+    PHOTOGRAMMETRY_PT_settings,
+    PHOTOGRAMMETRY_OT_process,
+]
 
 
 def register():
     for cls in classes:
+        print('register_class({})'.format(cls))
         bpy.utils.register_class(cls)
-    bpy.types.Scene.photogrammetry = PointerProperty(type=PhotogrammetryPropertyGroup)
+    bpy.types.Scene.photogrammetry = PointerProperty(type=PHOTOGRAMMETRY_PG_master)
     
     print('[blender-photogrammetry] Platform:', platform.system().lower())
     if platform.system().lower() == 'linux':
-        script_file = os.path.realpath(__file__)
-        addon_dir = os.path.dirname(script_file)
-        print('[blender-photogrammetry] Attempting to set execute flag on precompiled binaries in:')
-        print(addon_dir)
+        from pprint import pprint
+        print('[blender-photogrammetry] Attempting to set execute flag on precompiled binaries:')
+        pprint(binaries)
         
-        targets = ['pmvs', 'RadialUndistort', 'Bundle2PMVS']
         try:
-            for root, dirs, files in os.walk(addon_dir):
-                for f in files:
-                    if any([f.startswith(t) for t in targets]):
-                        os.chmod(os.path.join(root, f), 0o755)
+            for binpath in binaries:
+                os.chmod(binpath, 0o755)
         except Exception as ex:
             print('Unable to set precompiled binaries execute flag.')
             print(ex)

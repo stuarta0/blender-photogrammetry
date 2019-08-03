@@ -7,6 +7,7 @@ import platform
 import bpy
 
 from ..pmvs.load import prepare_workspace
+from ..utils import get_binpath_for_module, get_binary_path
 
 
 class PMVSProperties(object):
@@ -20,25 +21,21 @@ class PMVSProperties(object):
         self.import_points = import_points 
 
 def load(properties, data, *args, **kwargs):
-    #def bundle2pmvs(bin_path, bundle_path, target_dir, pmvs_options):
-    osname = platform.system().lower()
     dirpath = bpy.path.abspath(properties.dirpath)
-    binpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), osname)
-    ext = ''
+    binpath = get_binpath_for_module(os.path.realpath(__file__))
     env = os.environ.copy()
-
-    if osname == 'windows':
-        ext = '.exe'
+    if platform.system().lower() == 'windows':
         env.update({
-            'PATH': '{SCRIPT_PATH}\lib;{PATH}'.format(SCRIPT_PATH=binpath, PATH=env.get('PATH', '')),
-            'QT_PLUGIN_PATH': '{SCRIPT_PATH}\lib;{QT_PLUGIN_PATH}'.format(SCRIPT_PATH=binpath, QT_PLUGIN_PATH=env.get('QT_PLUGIN_PATH', ''))
+            'PATH': "{binpath}\lib;{path}".format(binpath=binpath, path=env.get('PATH', '')),
+            'QT_PLUGIN_PATH': "{binpath}\lib;{qt_plugin_path}".format(binpath=binpath, qt_plugin_path=env.get('QT_PLUGIN_PATH', ''))
         })
     
     # running COLMAP requires transforming to PMVS first
     options_path = prepare_workspace(PMVSProperties(dirpath, 0, 2, 0.7, 7, 2, True), data)
 
+    colmap_path = get_binary_path(binpath, 'colmap')
     args = [
-        os.path.join(binpath, 'colmap{}'.format(ext)),
+        colmap_path,
         'patch_match_stereo',
         '--workspace_path', os.path.dirname(options_path),
         '--workspace_format', 'PMVS',
@@ -52,7 +49,7 @@ def load(properties, data, *args, **kwargs):
 
     model = os.path.join(os.path.dirname(options_path), 'reconstruction-colmap.ply')
     args = [
-        os.path.join(binpath, 'colmap{}'.format(ext)),
+        colmap_path,
         'stereo_fusion',
         '--workspace_path', os.path.dirname(options_path),
         '--workspace_format', 'PMVS',

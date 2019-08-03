@@ -1,6 +1,6 @@
 # blender-photogrammetry
 
-A photogrammetry addon for Blender that allows conversion and processing between a number of photogrammetry formats, in addition to providing dense reconstruction straight from Blender's camera tracker. 
+A photogrammetry addon for Blender 2.79 and 2.80 that allows conversion and processing between a number of photogrammetry formats, in addition to providing dense reconstruction straight from Blender's camera tracker. 
 
 In the interests of remaining user friendly, this addon comes with all precompiled binaries required to process data.
 
@@ -67,7 +67,7 @@ Source code and precompiled binaries: https://github.com/pmoulon/CMVS-PMVS
 
 #### License
 
-In case you use this software, include an acknowledgement that PMVS2 was developped by Yasutaka Furukawa (University of Illinois at Urbana-Champaign, University of Washington) and Jean Ponce (University of Illinois at Urbana-Champaign, Ecole Normale Supérieure).
+In case you use this software, include an acknowledgement that PMVS2 was developped by Yasutaka Furukawa (University of Illinois at Urbana-Champaign, University of Washington) and Jean Ponce (University of Illinois at Urbana-Champaign, Ecole Normale SupÃ©rieure).
 
 PMVS is distributed under the GNU General Public License.
 
@@ -75,7 +75,7 @@ For commercial licencing of the software, please contact Yasutaka Furukawa.
 
 # Thanks
 
-Special thanks to [Noah Snavely](https://github.com/snavely), the author of Bundler, for giving me some pointers on getting the right matrix representations in the bundle.out file. Also thanks to [Sebastian König](https://www.blendernetwork.org/sebastian-koenig) for help in testing the addon under Linux and with varied datasets.
+Special thanks to [Noah Snavely](https://github.com/snavely), the author of Bundler, for giving me some pointers on getting the right matrix representations in the bundle.out file. Also thanks to [Sebastian KÃ¶nig](https://www.blendernetwork.org/sebastian-koenig) for help in testing the addon under Linux and with varied datasets.
 
 # License
 
