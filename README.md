@@ -42,7 +42,6 @@ If you run into issues on linux, you may need to install ```libjpeg62``` and ```
 ## Roadmap
 
 * COLMAP is able to generate a delaunay and poisson mesh, but requires a sparse workspace in COLMAP format. Since the current dense reconstruction uses the PMVS workspace, we can't currently generate a mesh.
-* Add Blender 2.8 support
 * Enable UI updates during processing if Blender 2.8 supports it (not feasible with Blender 2.79b)
 
 ## Sources
@@ -75,7 +74,7 @@ For commercial licencing of the software, please contact Yasutaka Furukawa.
 
 # Thanks
 
-Special thanks to [Noah Snavely](https://github.com/snavely), the author of Bundler, for giving me some pointers on getting the right matrix representations in the bundle.out file. Also thanks to [Sebastian KÃ¶nig](https://www.blendernetwork.org/sebastian-koenig) for help in testing the addon under Linux and with varied datasets.
+Special thanks to [Noah Snavely](https://github.com/snavely), the author of Bundler, for giving me some pointers on getting the right matrix representations in the bundle.out file. Also thanks to [Sebastian König](https://www.blendernetwork.org/sebastian-koenig) for help in testing the addon under Linux and with varied datasets.
 
 # License
 
