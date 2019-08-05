@@ -21,7 +21,7 @@ def get_binpath_for_module(module_name):
     module_root = module_name
     if os.path.isfile(module_name):
         module_root = os.path.dirname(module_name)
-    if not os.path.exists(module_root):
+    if not os.path.isabs(module_root) or not os.path.exists(module_root):
         module_root = os.path.join(os.path.dirname(os.path.realpath(__file__)), module_name)
     paths = [
         os.path.join(module_root, 'bin'), # packaged release for each platform
