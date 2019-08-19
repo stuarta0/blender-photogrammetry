@@ -44,6 +44,7 @@ def extract(properties, *args, **kargs):
     with open(filepath, 'r') as f:
         lines = f.readlines()
 
+    # TODO: read optional calibration from file
     if len(lines) == 0 or not lines[0].startswith('NVM_V3'):
         raise Exception('Not a valid NVM file')
 
@@ -119,13 +120,14 @@ def extract(properties, *args, **kargs):
             'rgb': tuple(map(int, [match.group('R'), match.group('G'), match.group('B')])),
         })
 
-        # # TODO: read measurements and update camera trackers collection
-        # cur = match.group('measurements')
-        # for m in range(int(match.groups('num_measurements'))):
-        #     measurement_match = measurement_re.match(cur)
-        #     if not measurement_match:
-        #         raise Exception(f'Marker {i} did not match measurement {m} format specification')
-        #     cur = cur[measurement_match.endpos:]
+        # TODO: read measurements and update camera trackers collection
+        cur = match.group('measurements')
+        for m in range(int(match.group('num_measurements'))):
+            measurement_match = measurement_re.match(cur)
+            if not measurement_match:
+                raise Exception(f'Marker {i} did not match measurement {m} format specification')
+            cameras[int(measurement_match.group('image_idx'))]['trackers'].setdefault(i, tuple(map(float, (measurement_match.group('X'), measurement_match.group('Y')))))
+            cur = cur[measurement_match.end(len(measurement_match.groups())):].strip()
     
     return {
         'trackers': trackers,

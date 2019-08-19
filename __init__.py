@@ -74,7 +74,7 @@ class PHOTOGRAMMETRY_OT_process(bpy.types.Operator):
 
         from pprint import pprint
         data = inputs[p.input].func(extract_props, scene=scene)
-        pprint(data)
+        # pprint(data)
         if data:
             outputs[p.output].func(load_props, data, scene=scene)
 
