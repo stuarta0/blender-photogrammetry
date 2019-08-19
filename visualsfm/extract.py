@@ -3,7 +3,8 @@ import os
 import shutil
 import subprocess
 import re
-from mathutils import Vector, Matrix, Quaternion
+from math import pi
+from mathutils import Vector, Matrix, Quaternion, Euler
 from collections import namedtuple
 
 
@@ -77,12 +78,30 @@ def extract(properties, *args, **kargs):
 
         # create cameras
         q = Quaternion(tuple(map(float, [match.group('QW'), match.group('QX'), match.group('QY'), match.group('QZ')])))
+
+        """
+        https://github.com/SBCV/Blender-Addon-Photogrammetry-Importer/blob/75189215dffde50dad106144111a48f29b1fed32/photogrammetry_importer/file_handler/nvm_file_handler.py#L55
+        VisualSFM CAMERA coordinate system is the standard CAMERA coordinate system in computer vision (not the same
+        as in computer graphics like in bundler, blender, etc.)
+        That means
+              the y axis in the image is pointing downwards (not upwards)
+              the camera is looking along the positive z axis (points in front of the camera show a positive z value)
+        The camera coordinate system in computer vision VISUALSFM uses camera matrices,
+        which are rotated around the x axis by 180 degree
+        i.e. the y and z axis of the CAMERA MATRICES are inverted
+        """
+        R = q.to_matrix()
+        R.rotate(Euler((pi, 0, 0)))
+        R.transpose()
+        c = Vector(tuple(map(float, [match.group('X'), match.group('Y'), match.group('Z')])))
+        t = -1 * R @ c
+
         cameras.setdefault(i, {
             'filename': filenames[0],
             'f': float(match.group('f')),
             'k': (float(match.group('k1')), 0, 0),
-            't': tuple(map(float, [match.group('X'), match.group('Y'), match.group('Z')])),
-            'R': tuple(map(tuple, tuple(q.to_matrix()))),
+            't': tuple(t),
+            'R': tuple(map(tuple, tuple(R))),
             'trackers': {},
         })
     
