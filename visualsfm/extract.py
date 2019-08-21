@@ -133,7 +133,7 @@ def extract(properties, *args, **kargs):
             measurement_match = measurement_re.match(cur)
             if not measurement_match:
                 raise Exception(f'Marker {i} did not match measurement {m} format specification')
-            cameras[int(measurement_match.group('image_idx'))]['trackers'].setdefault(i, tuple(map(float, (measurement_match.group('X'), measurement_match.group('Y')))))
+            cameras[int(measurement_match.group('image_idx'))]['trackers'].setdefault(i, (float(measurement_match.group('X')), -1 * float(measurement_match.group('Y'))))
             cur = cur[measurement_match.end(len(measurement_match.groups())):].strip()
     
     return data

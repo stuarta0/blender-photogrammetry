@@ -82,7 +82,10 @@ def load(properties, data, *args, **kwargs):
             
             f.write('{co[0]} {co[1]} {co[2]} {rgb[0]} {rgb[1]} {rgb[2]} {num_measurements}'.format(**track, num_measurements=len(measurements.items())))
             for cid, measurement in measurements.items():
-                f.write(' {image_idx} {feature_idx} {co[0]} {co[1]}'.format(image_idx=cid, feature_idx=sift, co=measurement))
+                f.write(' {image_idx} {feature_idx} {x} {y}'.format(image_idx=cid,
+                                                                    feature_idx=sift,
+                                                                    x=measurement[0],
+                                                                    y=-measurement[1]))
                 sift += 1
             f.write('\n')
 
