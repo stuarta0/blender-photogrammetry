@@ -4,6 +4,7 @@ import shutil
 import subprocess
 from mathutils import Vector, Matrix
 from collections import namedtuple
+from ..utils import get_image_size
 
 
 def extract(properties, *args, **kargs):
@@ -17,6 +18,10 @@ def extract(properties, *args, **kargs):
 
     cameras = {}
     trackers = {}
+    data = {
+        'trackers': trackers,
+        'cameras': cameras
+    }
 
     total_cameras, total_points = map(int, lines[1].split())
     for i in range(int(total_cameras)):
@@ -43,22 +48,23 @@ def extract(properties, *args, **kargs):
             'R': tuple(map(tuple, tuple(rotation))),
             'trackers': {},
         })
+        
+        if 'resolution' not in data:
+            data.setdefault('resolution', get_image_size(filename))
     
     for i in range(int(total_points)):
         # each point uses 3 lines
         idx = 2 + int(total_cameras) * 5 + i * 3
         trackers.setdefault(i, {
-            'co': map(float, lines[idx].split()),
+            'co': tuple(map(float, lines[idx].split())),
             'rgb': tuple(map(int, lines[idx + 1].split())),
         })
-        # TODO: read 2d view list and update camera collection
+        
+        # for m in range(int(match.group('num_measurements'))):
+        #     measurement_match = measurement_re.match(cur)
+        #     if not measurement_match:
+        #         raise Exception(f'Marker {i} did not match measurement {m} format specification')
+        #     cameras[int(measurement_match.group('image_idx'))]['trackers'].setdefault(i, tuple(map(float, (measurement_match.group('X'), measurement_match.group('Y')))))
+        #     cur = cur[measurement_match.end(len(measurement_match.groups())):].strip()
     
-    i = bpy.data.images.load(next(v for v in cameras.values())['filename'])
-    resolution = tuple(i.size)
-    bpy.data.images.remove(i)
-
-    return {
-        'trackers': trackers,
-        'cameras': cameras,
-        'resolution': resolution
-    }
+    return data

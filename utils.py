@@ -84,6 +84,14 @@ def get_binary_path(module_binary_path, binary_name):
     return None
 
 
+def get_image_size(filename):
+    img = bpy.data.images.load(filename)
+    try:
+        return tuple(img.size)
+    finally:
+        bpy.data.images.remove(img)
+
+
 # https://stackoverflow.com/a/38534524
 class CroppingPrettyPrinter(PrettyPrinter):
     def __init__(self, *args, **kwargs):

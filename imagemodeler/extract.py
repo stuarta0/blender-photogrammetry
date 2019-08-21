@@ -4,6 +4,7 @@ import os
 import xml.etree.ElementTree as ET
 from math import tan, radians
 from mathutils import Vector, Matrix, Euler
+from ..utils import get_image_size
 
 
 def extract(properties, *args, **kwargs):
@@ -106,9 +107,7 @@ def extract(properties, *args, **kwargs):
         })
 
         if 'resolution' not in data:
-            img = bpy.data.images.load(camera['filename'])
-            data.setdefault('resolution', tuple(img.size))
-            bpy.data.images.remove(img)
+            data.setdefault('resolution', get_image_size(camera['filename']))
 
         trackers = camera.setdefault('trackers', {})
         for marker in shot.find('IPLN').find('IFRM').findall('M'):

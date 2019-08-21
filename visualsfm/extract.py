@@ -6,6 +6,7 @@ import re
 from math import pi
 from mathutils import Vector, Matrix, Quaternion, Euler
 from collections import namedtuple
+from ..utils import get_image_size
 
 
 """
@@ -50,6 +51,10 @@ def extract(properties, *args, **kargs):
 
     cameras = {}
     trackers = {}
+    data = {
+        'trackers': trackers,
+        'cameras': cameras,
+    }
 
     total_cameras = int(lines[2])
     total_points = int(lines[4 + total_cameras])
@@ -105,6 +110,9 @@ def extract(properties, *args, **kargs):
             'R': tuple(map(tuple, tuple(R))),
             'trackers': {},
         })
+        
+        if 'resolution' not in data:
+            data.setdefault('resolution', get_image_size(filenames[0]))
     
     marker_re = re.compile(rf'^(?P<X>{num})\s+(?P<Y>{num})\s+(?P<Z>{num})\s+(?P<R>\d+)\s+(?P<G>\d+)\s+(?P<B>\d+)\s+(?P<num_measurements>{num})\s+(?P<measurements>.*?)\s*$')
     measurement_re = re.compile(rf'^(?P<image_idx>\d+)\s+(?P<feature_idx>\d+)\s+(?P<X>{num})\s+(?P<Y>{num}).*')
@@ -120,7 +128,6 @@ def extract(properties, *args, **kargs):
             'rgb': tuple(map(int, [match.group('R'), match.group('G'), match.group('B')])),
         })
 
-        # TODO: read measurements and update camera trackers collection
         cur = match.group('measurements')
         for m in range(int(match.group('num_measurements'))):
             measurement_match = measurement_re.match(cur)
@@ -129,7 +136,4 @@ def extract(properties, *args, **kargs):
             cameras[int(measurement_match.group('image_idx'))]['trackers'].setdefault(i, tuple(map(float, (measurement_match.group('X'), measurement_match.group('Y')))))
             cur = cur[measurement_match.end(len(measurement_match.groups())):].strip()
     
-    return {
-        'trackers': trackers,
-        'cameras': cameras,
-    }
+    return data

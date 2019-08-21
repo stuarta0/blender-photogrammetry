@@ -3,7 +3,7 @@ import os
 import bmesh
 from mathutils import Vector, Matrix
 
-from ..utils import set_active_collection
+from ..utils import set_active_collection, get_image_size
 
 
 def load(properties, data, *args, **kwargs):
@@ -15,8 +15,11 @@ def load(properties, data, *args, **kwargs):
     collection = set_active_collection(**kwargs)
     camera_collection = set_active_collection(name='Cameras', parent=collection, **kwargs)
 
-    if 'resolution' in data and properties.update_render_size:
-        scene.render.resolution_x, scene.render.resolution_y = data['resolution']
+    if properties.update_render_size:
+        resolution = data.get('resolution', None)
+        if not resolution and len(data['cameras']):
+            resolution = get_image_size(next(c for c in data['cameras'].values())['filename'])
+        scene.render.resolution_x, scene.render.resolution_y = resolution
 
     for cid, camera in data['cameras'].items():
         # rotation in file needs to be transposed to work properly
