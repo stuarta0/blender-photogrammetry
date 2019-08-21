@@ -41,7 +41,7 @@ def load(properties, data, *args, **kwargs):
         image_path = camera['filename']
         if properties.relative_paths:
             image_path = bpy.path.relpath(image_path)
-        img = bpy.data.images.load(image_path)
+        img = bpy.data.images.load(image_path, check_existing=True)
         bg.image = img
         bg.alpha = properties.camera_alpha
         bg.display_depth = properties.camera_display_depth
