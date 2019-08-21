@@ -64,15 +64,11 @@ def extract(properties, *args, **kwargs):
             'R': cfrm.find('R').attrib
         }
         
-        # Z rotation in blender is based on Y being 0
-        # Z rotation from IM assumes X is 0 like in all standard maths
-        # transform Z rotation to blenders representation by subtracting 90 degrees
-        z = float(extrinsics['R']['z'])
         extrinsics.update({
             'T': Vector((float(extrinsics['T']['x']), float(extrinsics['T']['y']), float(extrinsics['T']['z']))),
             'R': Euler((radians(float(extrinsics['R']['x'])),
                         radians(float(extrinsics['R']['y'])), 
-                        radians(z)), 'XYZ').to_matrix()
+                        radians(float(extrinsics['R']['z']))), 'XYZ').to_matrix()
         })
         extrinsics['R'].transpose()
 
