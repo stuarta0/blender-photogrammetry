@@ -1,6 +1,7 @@
 import os
 import bpy
 import platform
+from pprint import PrettyPrinter
 
 
 osname = platform.system().lower()
@@ -81,3 +82,48 @@ def get_binary_path(module_binary_path, binary_name):
         if os.path.exists(p):
             return p
     return None
+
+
+# https://stackoverflow.com/a/38534524
+class CroppingPrettyPrinter(PrettyPrinter):
+    def __init__(self, *args, **kwargs):
+        self.maxlist = kwargs.pop('maxlist', 6)
+        self.maxdict = kwargs.pop('maxdict', 4)
+        PrettyPrinter.__init__(self, *args, **kwargs)
+
+    def _format(self, obj, stream, indent, allowance, context, level):
+        if isinstance(obj, list):
+            # If object is a list, crop a copy of it according to self.maxlist
+            # and append an ellipsis
+            if len(obj) > self.maxlist:
+                cropped_obj = obj[:self.maxlist] + ['...']
+                return PrettyPrinter._format(
+                    self, cropped_obj, stream, indent,
+                    allowance, context, level)
+
+        # Let the original implementation handle anything else
+        # Note: No use of super() because PrettyPrinter is an old-style class
+        return PrettyPrinter._format(
+            self, obj, stream, indent, allowance, context, level)
+
+    def _format_dict_items(self, items, stream, indent, allowance, context,
+                           level):
+        write = stream.write
+        indent += self._indent_per_level
+        delimnl = ',\n' + ' ' * indent
+        last_index = min([self.maxdict, len(items)]) - 1
+        for i, (key, ent) in enumerate(items):
+            last = i == last_index
+            rep = self._repr(key, context, level)
+            write(rep)
+            write(': ')
+            self._format(ent, stream, indent + len(rep) + 2,
+                         allowance if last else 1,
+                         context, level)
+            if not last:
+                write(delimnl)
+            else:
+                if self.maxdict < len(items):
+                    write(delimnl)
+                    write('...')
+                break

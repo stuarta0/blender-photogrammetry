@@ -19,7 +19,7 @@ from bpy.props import PointerProperty, IntProperty, FloatProperty, StringPropert
 from bpy.types import AddonPreferences, PropertyGroup, Operator
 from bpy_extras.io_utils import ExportHelper, ImportHelper
 
-from .utils import PhotogrammetryModule, get_binpath_for_module, get_binary_path
+from .utils import PhotogrammetryModule, get_binpath_for_module, get_binary_path, CroppingPrettyPrinter
 
 
 # modules will exist as directories in the current directory
@@ -72,9 +72,9 @@ class PHOTOGRAMMETRY_OT_process(bpy.types.Operator):
         extract_props = getattr(p, p.input, None)
         load_props = getattr(p, p.output, None)
 
-        from pprint import pprint
         data = inputs[p.input].func(extract_props, scene=scene)
-        # pprint(data)
+        pprint = CroppingPrettyPrinter(maxlist=50, maxdict=50)
+        pprint.pprint(data)
         if data:
             outputs[p.output].func(load_props, data, scene=scene)
 

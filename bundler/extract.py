@@ -9,9 +9,6 @@ from collections import namedtuple
 def extract(properties, *args, **kargs):
     dirpath = bpy.path.abspath(properties.dirpath)
 
-    # # TODO: read list.txt to get image paths to detect image size
-    # resolution_x = int(scene.render.resolution_x * (scene.render.resolution_percentage / 100))
-
     with open(os.path.join(dirpath, 'bundle.out'), 'r') as f:
         lines = f.readlines()
 
@@ -33,9 +30,13 @@ def extract(properties, *args, **kargs):
         rotation.append(map(float, lines[idx + 3].split()))
         translation = Vector(map(float, lines[idx + 4].split()))
         
+        filename = images[i].strip()
+        if not os.path.isabs(filename) or not os.path.isfile(filename):
+            filename = os.path.join(dirpath, filename)
+
         # create cameras
         cameras.setdefault(i, {
-            'filename': images[i],
+            'filename': filename,
             'f': focal,
             'k': (k1, k2, 0),
             't': tuple(translation),
@@ -52,7 +53,12 @@ def extract(properties, *args, **kargs):
         })
         # TODO: read 2d view list and update camera collection
     
+    i = bpy.data.images.load(next(v for v in cameras.values())['filename'])
+    resolution = tuple(i.size)
+    bpy.data.images.remove(i)
+
     return {
         'trackers': trackers,
         'cameras': cameras,
+        'resolution': resolution
     }
