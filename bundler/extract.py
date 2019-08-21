@@ -60,11 +60,11 @@ def extract(properties, *args, **kargs):
             'rgb': tuple(map(int, lines[idx + 1].split())),
         })
         
-        # for m in range(int(match.group('num_measurements'))):
-        #     measurement_match = measurement_re.match(cur)
-        #     if not measurement_match:
-        #         raise Exception(f'Marker {i} did not match measurement {m} format specification')
-        #     cameras[int(measurement_match.group('image_idx'))]['trackers'].setdefault(i, tuple(map(float, (measurement_match.group('X'), measurement_match.group('Y')))))
-        #     cur = cur[measurement_match.end(len(measurement_match.groups())):].strip()
-    
+        view_list = lines[idx + 2].split()
+        for v in range(int(view_list[0])):
+            vidx = v * 4 + 1
+            cidx = int(view_list[vidx])
+            # sift = int(view_list[vidx + 1])
+            cameras[cidx]['trackers'].setdefault(i, (float(view_list[vidx + 2]), float(view_list[vidx + 3])))
+
     return data
