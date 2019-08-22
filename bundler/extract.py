@@ -7,6 +7,7 @@ from collections import namedtuple
 from ..utils import get_image_size
 
 
+# https://github.com/snavely/bundler_sfm
 def extract(properties, *args, **kargs):
     dirpath = bpy.path.abspath(properties.dirpath)
 
@@ -65,6 +66,8 @@ def extract(properties, *args, **kargs):
             vidx = v * 4 + 1
             cidx = int(view_list[vidx])
             # sift = int(view_list[vidx + 1])
+            # The origin of the image is the center of the image, the positive x-axis points right, and the positive y-axis points up 
+            # (in addition, in the camera coordinate system, the positive z-axis points backwards, so the camera is looking down the negative z-axis, as in OpenGL)
             cameras[cidx]['trackers'].setdefault(i, (float(view_list[vidx + 2]), float(view_list[vidx + 3])))
 
     return data
