@@ -10,6 +10,7 @@ from ..utils import get_image_size
 
 
 """
+http://ccwu.me/vsfm/doc.html#nvm
 The output format: N-View Match (NVM)
 VisualSFM saves SfM workspaces into NVM files, which contain input image paths and multiple 3D models. Below is the format description
 
@@ -61,7 +62,7 @@ def extract(properties, *args, **kargs):
 
     # numbers: optional negative, digit(s), optional decimal point and following digit(s), optional scientific notation "e-0"
     num = r'-?\d+(?:\.\d+)?(?:e[+-]\d+)?'
-    camera_re = re.compile(rf'^(?P<name>.*?)\s+(?P<f>{num})\s+(?P<QW>{num})\s+(?P<QX>{num})\s+(?P<QY>{num})\s+(?P<QZ>{num})\s+(?P<X>{num})\s+(?P<Y>{num})\s+(?P<Z>{num})\s+(?P<k1>{num})\s+0\s*$')
+    camera_re = re.compile(rf'^(?P<name>.*?)\s+(?P<f>{num})\s+(?P<QW>{num})\s+(?P<QX>{num})\s+(?P<QY>{num})\s+(?P<QZ>{num})\s+(?P<X>{num})\s+(?P<Y>{num})\s+(?P<Z>{num})\s+(?P<k1>{num})\s+{num}\s*$')
     for i in range(int(total_cameras)):
         # each camera uses 1 line
         match = camera_re.match(lines[3 + i])
@@ -101,6 +102,7 @@ def extract(properties, *args, **kargs):
         R.transpose()
         c = Vector(tuple(map(float, [match.group('X'), match.group('Y'), match.group('Z')])))
         t = -1 * R @ c
+        R.transpose()
 
         cameras.setdefault(i, {
             'filename': filenames[0],
@@ -133,6 +135,8 @@ def extract(properties, *args, **kargs):
             measurement_match = measurement_re.match(cur)
             if not measurement_match:
                 raise Exception(f'Marker {i} did not match measurement {m} format specification')
+            # Let the measurement be (mx, my), which is relative to principal point (typically image center)
+            # As for the image coordinate system, X-axis points right, and Y-axis points downward, so Z-axis points forward.
             cameras[int(measurement_match.group('image_idx'))]['trackers'].setdefault(i, (float(measurement_match.group('X')), -1 * float(measurement_match.group('Y'))))
             cur = cur[measurement_match.end(len(measurement_match.groups())):].strip()
     

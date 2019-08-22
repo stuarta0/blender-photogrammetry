@@ -56,13 +56,14 @@ def load(properties, data, *args, **kwargs):
 
             # transform camera extrinsics appropriately
             R = Matrix(camera['R'])
-            R.rotate(Euler((pi, 0, 0)))
             R.transpose()
             c = Vector(camera['t'])
             t = -1 * R @ c
+            R.transpose()
+            R.rotate(Euler((pi, 0, 0)))
 
             # <Camera> = <File name> <focal length> <quaternion WXYZ> <camera center> <radial distortion> 0
-            f.write('{filename} {f} {q[0]} {q[1]} {q[1]} {q[2]} {t[0]} {t[1]} {t[2]} {k[0]} 0\n'.format(
+            f.write('{filename} {f} {q[0]} {q[1]} {q[2]} {q[3]} {t[0]} {t[1]} {t[2]} {k[0]} 0\n'.format(
                 filename=camera['filename'],
                 f=camera['f'],
                 q=R.to_quaternion(),
@@ -85,7 +86,7 @@ def load(properties, data, *args, **kwargs):
                 f.write(' {image_idx} {feature_idx} {x} {y}'.format(image_idx=cid,
                                                                     feature_idx=sift,
                                                                     x=measurement[0],
-                                                                    y=-measurement[1]))
+                                                                    y=-1 * measurement[1]))
                 sift += 1
             f.write('\n')
 
