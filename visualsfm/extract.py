@@ -104,6 +104,7 @@ def extract(properties, *args, **kargs):
         t = -1 * R @ c
         R.transpose()
 
+        # TODO: confirm whether the distortion coefficient needs inverting
         cameras.setdefault(i, {
             'filename': filenames[0],
             'f': float(match.group('f')),

@@ -62,6 +62,7 @@ def load(properties, data, *args, **kwargs):
             R.transpose()
             R.rotate(Euler((pi, 0, 0)))
 
+            # TODO: confirm whether the distortion coefficient needs inverting
             # <Camera> = <File name> <focal length> <quaternion WXYZ> <camera center> <radial distortion> 0
             f.write('{filename} {f} {q[0]} {q[1]} {q[2]} {q[3]} {t[0]} {t[1]} {t[2]} {k[0]} 0\n'.format(
                 filename=camera['filename'],
