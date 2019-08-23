@@ -13,6 +13,7 @@ Once enabled, the photogrammetry settings can be found in the Properties panel >
 * **Blender's motion tracker**: Allows reading of the tracker and reconstruction data from a tracked movie clip. Good for generating a dense point cloud of a tracked movie clip for reference, rendering or simulation.
 * **Bundler**: Reads the bundler format consisting of a bundle.out and list.txt file.
 * **ImageModeler**: Reads an Autodesk ImageModeler .rzi file.
+* **VisualSfM**: Reads the NVM file format.
 
 ### Outputs:
 
@@ -20,6 +21,7 @@ Once enabled, the photogrammetry settings can be found in the Properties panel >
 * **Bundler**: Output a bundle.out, list.txt and associated images to use with other photogrammetry tools.
 * **PMVS**: Output the bundler file format, then run PMVS2 dense reconstruction on the dataset, resulting in a .ply point cloud.
 * **COLMAP**: Output to a PMVS workspace, then run COLMAP dense reconstruction, resulting in a .ply point cloud. *Only available with CUDA GPUs on Windows*
+* **VisualSfM**: Output to an NVM file with associated images to use with other photogrammetry tools.
 
 **Note:** Since inputs are outputs can be mixed and matched, this addon can be used as a convertor between different photogrammetry formats (with the added benefit of having Blender integration).
 
