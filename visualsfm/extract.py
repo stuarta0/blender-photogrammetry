@@ -46,7 +46,7 @@ def extract(properties, *args, **kargs):
     with open(filepath, 'r') as f:
         lines = f.readlines()
 
-    # TODO: read optional calibration from file
+    # TODO: read optional calibration from file (tuple stored against each camera as key 'principal' (x, y) floating-point pixels)
     if len(lines) == 0 or not lines[0].startswith('NVM_V3'):
         raise Exception('Not a valid NVM file')
 

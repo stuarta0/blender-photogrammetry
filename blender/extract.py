@@ -78,6 +78,7 @@ def extract(properties, *args, **kwargs):
                 'R': ((r00, r01, r02),
                       (r10, r11, r12),
                       (r20, r21, r22)),
+                'principal': (x, y),   # principal point in pixels
                 'trackers': {
                     id<int>: (x, y),   # origin in image centre
                 }
@@ -148,6 +149,7 @@ def extract(properties, *args, **kwargs):
                 'k': (tracking.camera.k1, tracking.camera.k2, tracking.camera.k3),
                 't': tuple(t),
                 'R': tuple(map(tuple, tuple(R))), # tuple(R) = (Vec3, Vec3, Vec3)
+                'principal': tuple(tracking.camera.principal),
                 'tracks': tracks,
                 'trackers': {},
             })

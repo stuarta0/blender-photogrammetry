@@ -15,10 +15,10 @@ def load(properties, data, *args, **kwargs):
     collection = set_active_collection(**kwargs)
     camera_collection = set_active_collection(name='Cameras', parent=collection, **kwargs)
 
+    resolution = data.get('resolution', None)
+    if not resolution and len(data['cameras']):
+        resolution = get_image_size(next(c for c in data['cameras'].values())['filename'])
     if properties.update_render_size:
-        resolution = data.get('resolution', None)
-        if not resolution and len(data['cameras']):
-            resolution = get_image_size(next(c for c in data['cameras'].values())['filename'])
         scene.render.resolution_x, scene.render.resolution_y = resolution
 
     for cid, camera in data['cameras'].items():
@@ -54,6 +54,13 @@ def load(properties, data, *args, **kwargs):
         cam.rotation_euler = rotation
         cdata.sensor_width = 35
         cdata.lens = (camera['f'] * 35) / scene.render.resolution_x
+        if 'principal' in camera:
+            # https://blender.stackexchange.com/questions/58235/what-are-the-units-for-camera-shift
+            x, y = resolution
+            px, py = camera['principal']
+            max_dimension = float(max(x, y))
+            cdata.shift_x = (x / 2.0 - px) / max_dimension
+            cdata.shift_y = (y / 2.0 - py) / max_dimension
 
     coords = []
     for tracker in data['trackers'].values():
