@@ -93,7 +93,7 @@ def prepare_workspace(properties, data):
     finally:
         os.chdir(cwd)
 
-
+# https://www.di.ens.fr/pmvs/documentation.html
 def load(properties, data, *args, **kwargs):
     options_path = prepare_workspace(properties, data)
     os.chdir(os.path.dirname(options_path))
