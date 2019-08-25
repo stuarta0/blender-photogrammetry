@@ -45,6 +45,7 @@ def extract(properties, *args, **kargs):
             'k': tuple(map(float, intrinsic.get('distortionParams', [0, 0, 0]))),
             't': tuple(t),
             'R': tuple(map(tuple, tuple(R))),
+            'principal': tuple(map(float, intrinsic['principalPoint'])),
             'trackers': {},
         })
 
