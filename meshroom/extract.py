@@ -2,6 +2,8 @@ import bpy
 import os
 import json
 from itertools import groupby
+from math import pi
+from mathutils import Matrix, Vector, Euler
 
 
 def extract(properties, *args, **kargs):
@@ -25,16 +27,24 @@ def extract(properties, *args, **kargs):
         'cameras': cameras,
     }
 
+
     for i, extrinsic in enumerate(sfm['poses']):
         view = views_by_pose[extrinsic['poseId']][0]
         intrinsic = intrinsics[view['intrinsicId']]
         transform = extrinsic['pose']['transform']
+
+        R = Matrix(tuple([tuple(map(float, transform['rotation'][i:i+3])) for i in range(0, len(transform['rotation']), 3)]))
+        R.transpose()
+        R.rotate(Euler((pi, 0, 0)))
+        c = Vector(tuple(map(float, transform['center'])))
+        t = -1 * R @ c
+
         cameras.setdefault(i, {
             'filename': view['path'],
             'f': float(intrinsic['pxFocalLength']),
             'k': tuple(map(float, intrinsic.get('distortionParams', [0, 0, 0]))),
-            't': tuple(map(float, transform['center'])),
-            'R': tuple([tuple(map(float, transform['rotation'][i:i+3])) for i in range(0, len(transform['rotation']), 3)]),
+            't': tuple(t),
+            'R': tuple(map(tuple, tuple(R))),
             'trackers': {},
         })
 
