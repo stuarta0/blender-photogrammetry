@@ -11,6 +11,7 @@ from ..utils import get_image_size
 
 
 """ https://colmap.github.io/
+    https://colmap.github.io/format.html
 
     CameraModel = collections.namedtuple(
         "CameraModel", ["model_id", "model_name", "num_params"])
@@ -51,9 +52,11 @@ def extract(properties, *args, **kargs):
         'cameras': cameras
     }
 
+    # https://colmap.github.io/format.html
     ccameras, images, points3D = read_model(dirpath, ext=ext.pop())
     model = list(ccameras.values())[0]
-    data.setdefault('resolution', (model.width, model.height))
+    resolution = (model.width, model.height)
+    data.setdefault('resolution', resolution)
     
     for idx, i in images.items():
         camera = ccameras[i.camera_id]
@@ -62,6 +65,12 @@ def extract(properties, *args, **kargs):
         if not os.path.isabs(filename) or not os.path.isfile(filename):
             filename = os.path.join(image_path, filename)
 
+        # The coordinates of the projection/camera center are given by -R^t * T, 
+        # where R^t is the inverse/transpose of the 3x3 rotation matrix composed
+        # from the quaternion and T is the translation vector. The local camera
+        # coordinate system of an image is defined in a way that the X axis points
+        # to the right, the Y axis to the bottom, and the Z axis to the front as
+        # seen from the image.
         R = Quaternion(i.qvec).to_matrix()
         R.transpose()
 
@@ -90,14 +99,15 @@ def extract(properties, *args, **kargs):
             'rgb': tuple(p.rgb)
         })
 
-    #     view_list = lines[idx + 2].split()
-    #     for v in range(int(view_list[0])):
-    #         vidx = v * 4 + 1
-    #         cidx = int(view_list[vidx])
-    #         # sift = int(view_list[vidx + 1])
-    #         # The origin of the image is the center of the image, the positive x-axis points right, and the positive y-axis points up 
-    #         # (in addition, in the camera coordinate system, the positive z-axis points backwards, so the camera is looking down the negative z-axis, as in OpenGL)
-    #         cameras[cidx]['trackers'].setdefault(i, (float(view_list[vidx + 2]), float(view_list[vidx + 3])))
+        # COLMAP uses the convention that the upper left image corner has coordinate (0, 0)
+        # and the center of the upper left most pixel has coordinate (0.5, 0.5).
+        for image_idx, image_id in enumerate(p.image_ids):
+            # COLMAP db format allows more dimensions, but sparse file format may not reperesent it
+            # to be safe, truncated coords to 2 dimensions
+            co = list(images[image_id].xys[p.point2D_idxs[image_idx]])[:2]
+            co[0] = co[0] - resolution[0] / 2.0 + 0.5
+            co[1] = co[1] - resolution[1] / 2.0 + 0.5
+            cameras[p.image_ids[0]]['trackers'].setdefault(idx, co)
 
     return data
 
