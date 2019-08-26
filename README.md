@@ -12,6 +12,7 @@ Once enabled, the photogrammetry settings can be found in the Properties panel >
 
 * **Blender's motion tracker**: Allows reading of the tracker and reconstruction data from a tracked movie clip. Good for generating a dense point cloud of a tracked movie clip for reference, rendering or simulation.
 * **Bundler**: Reads the bundler format consisting of a bundle.out and list.txt file.
+* **COLMAP**: Reads a COLMAP sparse reconstruction folder containing cameras, images and points3D files.
 * **ImageModeler**: Reads an Autodesk ImageModeler .rzi file.
 * **Meshroom**: Reads a Meshroom cameras.sfm file.
 * **VisualSfM**: Reads the NVM file format.
