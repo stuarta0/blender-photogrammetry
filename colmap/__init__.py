@@ -1,6 +1,8 @@
-from .groups import PHOTOGRAMMETRY_PG_colmap
+from .groups import PHOTOGRAMMETRY_PG_input_colmap, PHOTOGRAMMETRY_PG_output_colmap
+from .extract import extract
 from .load import load
 from ..utils import PhotogrammetryModule
 
-exporter = PhotogrammetryModule('COLMAP', 'Use COLMAP to generate a dense point cloud and reconstructed mesh', PHOTOGRAMMETRY_PG_colmap, load)
+importer = PhotogrammetryModule('COLMAP', 'Read a COLMAP sparse reconstruction', PHOTOGRAMMETRY_PG_input_colmap, extract)
+exporter = PhotogrammetryModule('COLMAP', 'Use COLMAP to generate a dense point cloud and reconstructed mesh', PHOTOGRAMMETRY_PG_output_colmap, load)
 binaries = ['colmap']
