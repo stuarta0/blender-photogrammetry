@@ -21,7 +21,15 @@ def load(properties, data, *args, **kwargs):
     if properties.update_render_size:
         scene.render.resolution_x, scene.render.resolution_y = resolution
 
-    for cid, camera in data['cameras'].items():
+    if properties.animate_camera:
+        name = 'AnimatedPhotogrammetryCamera'
+        cdata = bpy.data.cameras.new(name)
+        cdata.sensor_width = 35
+        animated_camera = bpy.data.objects.new(name, cdata)
+        camera_collection.objects.link(animated_camera)
+
+    ordered_cameras = sorted(data['cameras'].values(), key=lambda c: os.path.basename(c['filename']))
+    for i, camera in enumerate(ordered_cameras):
         # rotation in file needs to be transposed to work properly
         mrot = Matrix(camera['R'])
         mrot.transpose()
@@ -61,6 +69,19 @@ def load(properties, data, *args, **kwargs):
             max_dimension = float(max(x, y))
             cdata.shift_x = (x / 2.0 - px) / max_dimension
             cdata.shift_y = (y / 2.0 - py) / max_dimension
+
+        if animated_camera:
+            animated_camera.location = cam.location
+            animated_camera.rotation_euler = cam.rotation_euler
+            animated_camera.keyframe_insert('location', frame=i+1)
+            animated_camera.keyframe_insert('rotation_euler', frame=i+1)
+
+            # only needs to occur for the first camera - animating these properties could be trippy
+            if i == 0:
+                animated_camera.data.lens = cdata.lens
+                animated_camera.data.shift_x = cdata.shift_x
+                animated_camera.data.shift_y = cdata.shift_y
+
 
     coords = []
     for tracker in data['trackers'].values():

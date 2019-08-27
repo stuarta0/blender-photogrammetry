@@ -14,6 +14,7 @@ class PHOTOGRAMMETRY_PG_input_blender(PropertyGroup):
         layout.prop_search(self, 'clip', bpy.data, 'movieclips')
         layout.prop(self, 'frame_step')
 
+
 class PHOTOGRAMMETRY_PG_output_blender(PropertyGroup):
     update_render_size: BoolProperty(name='Update render size', description="Update the active scene's render size to the first image size", default=True)
     relative_paths: BoolProperty(name='Use relative paths for images', description='When adding background images for cameras, link images using relative paths', default=True)
@@ -22,9 +23,11 @@ class PHOTOGRAMMETRY_PG_output_blender(PropertyGroup):
         ('BACK', 'Back', 'Display image behind the 3D objects'),
         ('FRONT', 'Front', 'Display image in front of the 3D objects'),
     ], name='Camera Background Display', default='BACK')
+    animate_camera: BoolProperty(name='Create animated camera', description='Create keyframed camera in order of corresponding image names', default=False)
 
     def draw(self, layout):
         layout.prop(self, 'update_render_size')
         layout.prop(self, 'relative_paths')
         layout.prop(self, 'camera_alpha')
         layout.prop(self, 'camera_display_depth', expand=True)
+        layout.prop(self, 'animate_camera')
