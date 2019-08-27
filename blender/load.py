@@ -52,10 +52,13 @@ def load(properties, data, *args, **kwargs):
         image_path = camera['filename']
         if properties.relative_paths:
             image_path = bpy.path.relpath(image_path)
-        img = bpy.data.images.load(image_path, check_existing=True)
-        bg.image = img
-        bg.alpha = properties.camera_alpha
-        bg.display_depth = properties.camera_display_depth
+        try:
+            img = bpy.data.images.load(image_path, check_existing=True)
+            bg.image = img
+            bg.alpha = properties.camera_alpha
+            bg.display_depth = properties.camera_display_depth
+        except:
+            pass
 
         # set parameters
         cam.location = translation
@@ -82,6 +85,18 @@ def load(properties, data, *args, **kwargs):
                 animated_camera.data.shift_x = cdata.shift_x
                 animated_camera.data.shift_y = cdata.shift_y
 
+    if animated_camera and len(ordered_cameras) > 0:
+        # attempt to set background movieclip
+        try:
+            animated_camera.data.show_background_images = True
+            bg = animated_camera.data.background_images.new()
+            bpy.ops.clip.open(directory=os.path.dirname(ordered_cameras[0]['filename']), files=[{'name':os.path.basename(c['filename'])} for c in ordered_cameras])
+            bg.source = 'MOVIE_CLIP'
+            bg.clip = bpy.data.movieclips[os.path.basename(ordered_cameras[0]['filename'])]
+            bg.alpha = properties.camera_alpha
+            bg.display_depth = properties.camera_display_depth
+        except:
+            pass
 
     coords = []
     for tracker in data['trackers'].values():
