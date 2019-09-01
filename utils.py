@@ -104,7 +104,7 @@ class CroppingPrettyPrinter(PrettyPrinter):
             # If object is a list, crop a copy of it according to self.maxlist
             # and append an ellipsis
             if len(obj) > self.maxlist:
-                cropped_obj = obj[:self.maxlist] + ['...']
+                cropped_obj = obj[:self.maxlist] + [f'({len(obj) - self.maxlist} more)...']
                 return PrettyPrinter._format(
                     self, cropped_obj, stream, indent,
                     allowance, context, level)
@@ -133,7 +133,7 @@ class CroppingPrettyPrinter(PrettyPrinter):
             else:
                 if self.maxdict < len(items):
                     write(delimnl)
-                    write('...')
+                    write(f'({len(items) - self.maxdict} more)...')
                 break
 
 

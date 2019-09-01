@@ -27,12 +27,14 @@ def extract(properties, *args, **kargs):
 
     # find the requisite files in either format
     requisites = ['cameras', 'images', 'points3D']
-    extensions = ['.bin', '.txt']
+    extensions = ['.bin', '.txt', None]
     
-    files = [f for f in os.listdir(dirpath) for c in requisites if f.startswith(c)]
-    ext = set(extensions).intersection([os.path.splitext(r)[1].lower() for r in files])
-    if len(files) != 3 or len(ext) != 1:
-        raise Exception('COLMAP sparse reconstruction must contain a cameras, images and points3D file in .BIN or .TXT format')
+    for ext in extensions:
+        if not ext:
+            raise Exception('COLMAP sparse reconstruction must contain a cameras, images and points3D file in .BIN or .TXT format')
+        elif len([f for f in os.listdir(dirpath) for c in requisites if f == f'{c}{ext}']) == 3:
+            # found the correct set of files with this extension
+            break
 
     # check for a project.ini as it may contain an alternate image path setting
     try:
@@ -43,7 +45,7 @@ def extract(properties, *args, **kargs):
         config.read_string(config_string)
         image_path = config['DEFAULT']['image_path']
     except:
-        image_path = dirpath
+        image_path = os.path.join(dirpath, '..', 'images')
 
     cameras = {}
     trackers = {}
@@ -53,11 +55,17 @@ def extract(properties, *args, **kargs):
     }
 
     # https://colmap.github.io/format.html
-    ccameras, images, points3D = read_model(dirpath, ext=ext.pop())
+    ccameras, images, points3D = read_model(dirpath, ext=ext)
     model = list(ccameras.values())[0]
     resolution = (model.width, model.height)
     data.setdefault('resolution', resolution)
-    
+    def shift(co):
+        # COLMAP uses the convention that the upper left image corner has coordinate (0, 0)
+        # and the center of the upper left most pixel has coordinate (0.5, 0.5).
+        # Translate the point to the center of the image.
+        return (co[0] - resolution[0] / 2.0 + 0.5,
+                co[1] - resolution[1] / 2.0 + 0.5)
+
     for idx, i in images.items():
         camera = ccameras[i.camera_id]
         f, cx, cy = parse_camera_param_list(camera)
@@ -90,24 +98,17 @@ def extract(properties, *args, **kargs):
             't': tuple(t),
             'principal': (cx, cy),
             'R': tuple(map(tuple, tuple(R))),
-            'trackers': {},
+            'trackers': {i.point3D_ids[tidx]: shift(i.xys[tidx])
+                         for tidx in range(len(i.xys))
+                         if i.point3D_ids[tidx] >= 0},
         })
 
     for idx, p in points3D.items():
         trackers.setdefault(idx, {
             'co': tuple(p.xyz),
-            'rgb': tuple(p.rgb)
+            'rgb': tuple(p.rgb),
+            'error': p.error,
         })
-
-        # COLMAP uses the convention that the upper left image corner has coordinate (0, 0)
-        # and the center of the upper left most pixel has coordinate (0.5, 0.5).
-        for image_idx, image_id in enumerate(p.image_ids):
-            # COLMAP db format allows more dimensions, but sparse file format may not reperesent it
-            # to be safe, truncated coords to 2 dimensions
-            co = list(images[image_id].xys[p.point2D_idxs[image_idx]])[:2]
-            co[0] = co[0] - resolution[0] / 2.0 + 0.5
-            co[1] = co[1] - resolution[1] / 2.0 + 0.5
-            cameras[p.image_ids[0]]['trackers'].setdefault(idx, co)
 
     return data
 
