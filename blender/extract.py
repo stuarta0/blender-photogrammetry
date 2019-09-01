@@ -183,6 +183,7 @@ def extract(properties, *args, **kwargs):
             trackers[idx] = {
                 'co': tuple(mw @ track.bundle),
                 'rgb': (0, 0, 0),
+                'error': track.average_error,
             }
             # loop over every camera that this track is visible in
             track_cameras = [camera for camera in cameras.values() if track in camera['tracks']]
