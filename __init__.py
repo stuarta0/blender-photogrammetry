@@ -73,7 +73,7 @@ class PHOTOGRAMMETRY_OT_process(bpy.types.Operator):
         load_props = getattr(p, p.output, None)
 
         data = inputs[p.input].func(extract_props, scene=scene)
-        pprint = CroppingPrettyPrinter(maxlist=50, maxdict=50)
+        pprint = CroppingPrettyPrinter(maxlist=10, maxdict=10)
         pprint.pprint(data)
         if data:
             outputs[p.output].func(load_props, data, scene=scene)
