@@ -5,6 +5,7 @@ import shutil
 import platform
 
 import bpy
+from math import pi
 from mathutils import Matrix, Vector, Euler
 
 #from ..pmvs.load import prepare_workspace
@@ -86,33 +87,55 @@ def load(properties, data, *args, **kwargs):
             params = [camera['f'], camera['f']] + list(camera.get('principal', map(lambda a: a / 2.0, resolution)))
             cameras.append(Camera(1, 'PINHOLE', resolution[0], resolution[1], params))
 
-        qvec = tuple(Matrix(camera['R']).to_quaternion())
-        tvec = tuple(Vector(camera['t']))
+        R = Matrix(camera['R'])
+        t = Vector(camera['t'])
+        R.transpose()
+        c = -1 * R @ t
+        R.transpose()
+        R.rotate(Euler((pi, 0, 0)))
+        T = -1 * R @ c
+        qvec = tuple(R.to_quaternion())
+        tvec = tuple(T)
+
         xys = []
         point3D_ids = []
-        shutil.copy(camera['filename'], os.path.join(dirpath, 'images', os.path.basename(camera['filename'])))
-        images.append(Image(cid, qvec, tvec, 1, camera['filename'], xys, point3D_ids))
+        for tid, tracker in camera['trackers'].items():
+            co = list(tracker)
+            co[0] = co[0] + resolution[0] / 2.0 - 0.5
+            co[1] = co[1] + resolution[1] / 2.0 - 0.5
+            xys.append(co)
+            point3D_ids.append(tid)
+        filename = os.path.basename(camera['filename'])
+        shutil.copy(camera['filename'], os.path.join(dirpath, 'images', filename))
+        images.append(Image(cid, qvec, tvec, 1, filename, xys, point3D_ids))
 
     for tid, tracker in data['trackers'].items():
         image_ids = []
         point2D_idxs = []
-        points3D.append(Point3D(tid, tracker['co'], tracker['rgb'], 0.0, image_ids, point2D_idxs))
+        # find all the cameras that reference this 3D point
+        for cid, camera in data['cameras'].items():
+            if tid in camera['trackers']:
+                image_ids.append(cid)
+                point2D_idxs.append(list(camera['trackers'].keys()).index(tid))
+        points3D.append(Point3D(tid, tracker['co'], tracker['rgb'], tracker.get('error', 0.0), image_ids, point2D_idxs))
 
     write_model(os.path.join(dirpath, 'sparse'), '.txt', cameras, images, points3D)
-    raise NotImplementedError('Wrote COLMAP model. Calling COLMAP binaries on hold.')
 
+    # calculate all the paths used through COLMAP processing
     colmap_path = get_binary_path(binpath, 'colmap')
-    point_cloud_path = os.path.join(dirpath, 'dense', 'fused.ply')
-    poisson_path = os.path.join(dirpath, 'dense', 'meshed-poisson.ply')
-    delaunay_path = os.path.join(dirpath, 'dense', 'meshed-delaunay.ply')
+    sparse_path = os.path.join(dirpath, 'sparse')
+    dense_path = os.path.join(dirpath, 'dense')
+    point_cloud_path = os.path.join(dense_path, 'fused.ply')
+    poisson_mesh_path = os.path.join(dense_path, 'meshed-poisson.ply')
+    delaunay_mesh_path = os.path.join(dense_path, 'meshed-delaunay.ply')
 
     args = [
         colmap_path,
         'image_undistorter',
         '--image_path', os.path.join(dirpath, 'images'),
-        '--input_path', os.path.join(dirpath, 'sparse'),
-        '--output_path', os.path.join(dirpath, 'dense'),
-        '--output_format', 'COLMAP',
+        '--input_path', sparse_path,
+        '--output_path', dense_path,
+        '--output_type', 'COLMAP',
     ] + (['--max_image_size', str(properties.max_image_size)] if properties.max_image_size > 0 else [])
     print(' '.join(args))
     retcode = subprocess.call(args, env=env)
@@ -122,7 +145,7 @@ def load(properties, data, *args, **kwargs):
     args = [
         colmap_path,
         'patch_match_stereo',
-        '--workspace_path', os.path.join(dirpath, 'dense'),
+        '--workspace_path', dense_path,
     ]
     print(' '.join(args))
     retcode = subprocess.call(args, env=env)
@@ -132,7 +155,7 @@ def load(properties, data, *args, **kwargs):
     args = [
         colmap_path,
         'stereo_fusion',
-        '--workspace_path', os.path.join(dirpath, 'dense'),
+        '--workspace_path', dense_path,
         '--output_path', point_cloud_path,
     ]
     print(' '.join(args))
@@ -143,8 +166,8 @@ def load(properties, data, *args, **kwargs):
     args = [
         colmap_path,
         'poisson_mesher',
-        '--input_path', os.path.join(dirpath, 'dense', 'fused.ply'),
-        '--output_path', poisson_path,
+        '--input_path', point_cloud_path,
+        '--output_path', poisson_mesh_path,
     ]
     print(' '.join(args))
     retcode = subprocess.call(args, env=env)
@@ -154,8 +177,8 @@ def load(properties, data, *args, **kwargs):
     args = [
         colmap_path,
         'delaunay_mesher',
-        '--input_path', os.path.join(dirpath, 'dense'),
-        '--output_path', delaunay_path,
+        '--input_path', dense_path,
+        '--output_path', delaunay_mesh_path,
     ]
     print(' '.join(args))
     retcode = subprocess.call(args, env=env)
@@ -165,5 +188,5 @@ def load(properties, data, *args, **kwargs):
     if properties.import_points:
         set_active_collection(**kwargs)
         if os.path.exists(point_cloud_path): bpy.ops.import_mesh.ply(filepath=point_cloud_path)
-        if os.path.exists(poisson_path): bpy.ops.import_mesh.ply(filepath=poisson_path)
-        if os.path.exists(delaunay_path): bpy.ops.import_mesh.ply(filepath=delaunay_path)
+        if os.path.exists(poisson_mesh_path): bpy.ops.import_mesh.ply(filepath=poisson_mesh_path)
+        if os.path.exists(delaunay_mesh_path): bpy.ops.import_mesh.ply(filepath=delaunay_mesh_path)

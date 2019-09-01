@@ -49,7 +49,7 @@ def write_images_text(path, images):
             fid.write(f'{image.camera_id} ')
             fid.write(f'{image.name.strip()}\n')
             for i in range(len(image.xys)):
-                fid.write(f'{image.xys[i][0]} {image.xys[i][1]} {image.point2D_idxs[i]} ')
+                fid.write(f'{image.xys[i][0]} {image.xys[i][1]} {image.point3D_ids[i]} ')
             fid.write('\n')
 
 
