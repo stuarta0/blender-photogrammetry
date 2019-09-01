@@ -59,7 +59,13 @@ def extract(properties, *args, **kargs):
     model = list(ccameras.values())[0]
     resolution = (model.width, model.height)
     data.setdefault('resolution', resolution)
-    
+    def shift(co):
+        # COLMAP uses the convention that the upper left image corner has coordinate (0, 0)
+        # and the center of the upper left most pixel has coordinate (0.5, 0.5).
+        # Translate the point to the center of the image.
+        return (co[0] - resolution[0] / 2.0 + 0.5,
+                co[1] - resolution[1] / 2.0 + 0.5)
+
     for idx, i in images.items():
         camera = ccameras[i.camera_id]
         f, cx, cy = parse_camera_param_list(camera)
@@ -92,24 +98,17 @@ def extract(properties, *args, **kargs):
             't': tuple(t),
             'principal': (cx, cy),
             'R': tuple(map(tuple, tuple(R))),
-            'trackers': {},
+            'trackers': {i.point3D_ids[tidx]: shift(i.xys[tidx])
+                         for tidx in range(len(i.xys))
+                         if i.point3D_ids[tidx] >= 0},
         })
 
     for idx, p in points3D.items():
         trackers.setdefault(idx, {
             'co': tuple(p.xyz),
-            'rgb': tuple(p.rgb)
+            'rgb': tuple(p.rgb),
+            'error': p.error,
         })
-
-        # COLMAP uses the convention that the upper left image corner has coordinate (0, 0)
-        # and the center of the upper left most pixel has coordinate (0.5, 0.5).
-        for image_idx, image_id in enumerate(p.image_ids):
-            # COLMAP db format allows more dimensions, but sparse file format may not reperesent it
-            # to be safe, truncated coords to 2 dimensions
-            co = list(images[image_id].xys[p.point2D_idxs[image_idx]])[:2]
-            co[0] = co[0] - resolution[0] / 2.0 + 0.5
-            co[1] = co[1] - resolution[1] / 2.0 + 0.5
-            cameras[p.image_ids[0]]['trackers'].setdefault(idx, co)
 
     return data
 
