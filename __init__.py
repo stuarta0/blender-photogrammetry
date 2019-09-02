@@ -54,6 +54,19 @@ for m in modules:
         outputs.setdefault(f'out_{m}', exporter)
 
 
+class PHOTOGRAMMETRY_PT_preferences(AddonPreferences):
+    bl_idname = __name__
+    collection_name = StringProperty(
+        name='Collection Name',
+        description='Name of the collection that will be created when adding photogrammetry objects',
+        default='Photogrammetry'
+    )
+    
+    def draw(self, context):
+        layout = self.layout
+        layout.prop(self, "collection_name")
+
+
 class PHOTOGRAMMETRY_OT_process(bpy.types.Operator):
     bl_idname = "photogrammetry.process"
     bl_label = "Process photogrammetry from current scene settings"
@@ -159,6 +172,7 @@ class PHOTOGRAMMETRY_PT_settings(bpy.types.Panel):
 
 classes = list(set([i.property_group for i in inputs.values() if i.property_group] + [o.property_group for o in outputs.values() if o.property_group]))
 classes = classes + [
+    PHOTOGRAMMETRY_PT_preferences,
     PHOTOGRAMMETRY_PG_master,
     PHOTOGRAMMETRY_PT_settings,
     PHOTOGRAMMETRY_OT_process,

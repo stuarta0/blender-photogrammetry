@@ -3,7 +3,7 @@ import os
 import bmesh
 from mathutils import Vector, Matrix
 
-from ..utils import set_active_collection, get_image_size
+from ..utils import set_active_collection, get_image_size, get_prefs
 
 
 def load(properties, data, *args, **kwargs):
@@ -12,8 +12,9 @@ def load(properties, data, *args, **kwargs):
     scene = kwargs.get('scene', None)
     if not scene:
         raise Exception('Scene required to load data in blender.load')
+    prefs = get_prefs()
     collection = set_active_collection(**kwargs)
-    camera_collection = set_active_collection(name='Cameras', parent=collection, **kwargs)
+    camera_collection = set_active_collection(name=f'{prefs.collection_name or "Photogrammetry"}-Cameras', parent=collection, **kwargs)
 
     resolution = data.get('resolution', None)
     if not resolution and len(data['cameras']):
@@ -21,6 +22,7 @@ def load(properties, data, *args, **kwargs):
     if properties.update_render_size:
         scene.render.resolution_x, scene.render.resolution_y = resolution
 
+    animated_camera = None
     if properties.animate_camera:
         name = 'AnimatedPhotogrammetryCamera'
         cdata = bpy.data.cameras.new(name)
