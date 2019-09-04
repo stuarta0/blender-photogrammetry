@@ -32,11 +32,12 @@ class PHOTOGRAMMETRY_PG_input_colmap(PropertyGroup):
 
 class PHOTOGRAMMETRY_PG_output_colmap(PropertyGroup):
     dirpath: StringProperty(name='Workspace Directory', subtype='DIR_PATH', default='//colmap')
-    overwrite: BoolProperty(name='Overwrite Workspace Directory', default=True, description='If the workspace directory exists, all existing COLMAP files will be deleted. If you have already run dense reconstruction and only want to generate meshes, do not overwrite the workspace directory.')
+    overwrite: BoolProperty(name='Overwrite Workspace Directory', default=True, description='If the workspace directory exists, all existing COLMAP files will be deleted. If you have already run dense reconstruction and only want to generate meshes, do not overwrite the workspace directory')
     max_image_size: IntProperty(name='Max Image Size', subtype='PIXEL', default=0, min=0, description='If you run out of GPU memory during reconstruction, you can reduce the maximum image size by setting this option (0px = no limit)')
-    import_points: BoolProperty(name='Import point cloud after reconstruction', default=True, description='If false, just export COLMAP sparse model without reconstructing. If one of the mesh options are chosen, dense reconstruction will occur regardless.')
-    import_poisson: BoolProperty(name='Import poisson mesh', default=False, description='Run poisson_mesher on the dense reconstruction and import the resulting mesh')
-    import_delaunay: BoolProperty(name='Import delaunay mesh', default=False, description='Run delaunay_mesher on the dense reconstruction and import the resulting mesh')
+    import_points: BoolProperty(name='Reconstruct point cloud', default=True, description='If false, just export COLMAP sparse model without reconstructing. If one of the mesh options are chosen, dense reconstruction will occur regardless')
+    import_poisson: BoolProperty(name='Create poisson mesh', default=False, description='Run poisson_mesher on the dense reconstruction and import the resulting mesh')
+    import_delaunay: BoolProperty(name='Create delaunay mesh', default=False, description='Run delaunay_mesher on the dense reconstruction and import the resulting mesh')
+    import_openmvs: BoolProperty(name='Create openMVS textured mesh', default=False, description='Run openMVS on COLMAP dense reconstruction and import the resulting textured mesh')
     
     def draw(self, layout):
         layout.prop(self, 'dirpath')
@@ -45,3 +46,4 @@ class PHOTOGRAMMETRY_PG_output_colmap(PropertyGroup):
         layout.prop(self, 'import_points')
         layout.prop(self, 'import_poisson')
         layout.prop(self, 'import_delaunay')
+        layout.prop(self, 'import_openmvs')
