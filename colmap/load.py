@@ -60,6 +60,7 @@ TextureMesh.exe --working-folder C:\..\workspace\mvs\ colmap_mesh.mvs --export-t
 
 def load(properties, data, *args, **kwargs):
     dirpath = bpy.path.abspath(properties.dirpath)
+    overwrite = properties.overwrite
     binpath = get_binpath_for_module(os.path.realpath(__file__))
     env = os.environ.copy()
     if platform.system().lower() == 'windows':
@@ -72,54 +73,65 @@ def load(properties, data, *args, **kwargs):
     # convert our representation to the COLMAP model format
     for path in ['images', 'sparse', 'dense']:
         path = os.path.join(dirpath, path)
+        if overwrite and os.path.exists(path):
+            shutil.rmtree(path)
+            while os.path.exists(path):
+                pass
         if not os.path.exists(path):
             os.makedirs(path)
 
-    cameras = []
-    images = []
-    points3D = []
-    for cid, camera in data['cameras'].items():
-        if not cameras:
-            resolution = data.get('resolution', None)
-            if not resolution:
-                resolution = get_image_size(camera['filename'])
-            # PINHOLE params: [fx, fy, cx, cy]
-            params = [camera['f'], camera['f']] + list(camera.get('principal', map(lambda a: a / 2.0, resolution)))
-            cameras.append(Camera(1, 'PINHOLE', resolution[0], resolution[1], params))
-
-        R = Matrix(camera['R'])
-        t = Vector(camera['t'])
-        R.transpose()
-        c = -1 * R @ t
-        R.transpose()
-        R.rotate(Euler((pi, 0, 0)))
-        T = -1 * R @ c
-        qvec = tuple(R.to_quaternion())
-        tvec = tuple(T)
-
-        xys = []
-        point3D_ids = []
-        for tid, tracker in camera['trackers'].items():
-            co = list(tracker)
-            co[0] = co[0] + resolution[0] / 2.0 - 0.5
-            co[1] = co[1] + resolution[1] / 2.0 - 0.5
-            xys.append(co)
-            point3D_ids.append(tid)
-        filename = os.path.basename(camera['filename'])
-        shutil.copy(camera['filename'], os.path.join(dirpath, 'images', filename))
-        images.append(Image(cid, qvec, tvec, 1, filename, xys, point3D_ids))
-
-    for tid, tracker in data['trackers'].items():
-        image_ids = []
-        point2D_idxs = []
-        # find all the cameras that reference this 3D point
+    txt_model_files = set(['cameras.txt', 'images.txt', 'points3D.txt'])
+    bin_model_files = set(['cameras.bin', 'images.bin', 'points3D.bin'])
+    if txt_model_files != set(os.listdir(os.path.join(dirpath, 'sparse'))).intersection(txt_model_files):
+        cameras = []
+        images = []
+        points3D = []
         for cid, camera in data['cameras'].items():
-            if tid in camera['trackers']:
-                image_ids.append(cid)
-                point2D_idxs.append(list(camera['trackers'].keys()).index(tid))
-        points3D.append(Point3D(tid, tracker['co'], tracker['rgb'], tracker.get('error', 0.0), image_ids, point2D_idxs))
+            if not cameras:
+                resolution = data.get('resolution', None)
+                if not resolution:
+                    resolution = get_image_size(camera['filename'])
+                # PINHOLE params: [fx, fy, cx, cy]
+                params = [camera['f'], camera['f']] + list(camera.get('principal', map(lambda a: a / 2.0, resolution)))
+                cameras.append(Camera(1, 'PINHOLE', resolution[0], resolution[1], params))
 
-    write_model(os.path.join(dirpath, 'sparse'), '.txt', cameras, images, points3D)
+            R = Matrix(camera['R'])
+            t = Vector(camera['t'])
+            R.transpose()
+            c = -1 * R @ t
+            R.transpose()
+            R.rotate(Euler((pi, 0, 0)))
+            T = -1 * R @ c
+            qvec = tuple(R.to_quaternion())
+            tvec = tuple(T)
+
+            xys = []
+            point3D_ids = []
+            for tid, tracker in camera['trackers'].items():
+                co = list(tracker)
+                co[0] = co[0] + resolution[0] / 2.0 - 0.5
+                co[1] = co[1] + resolution[1] / 2.0 - 0.5
+                xys.append(co)
+                point3D_ids.append(tid)
+            filename = os.path.basename(camera['filename'])
+            shutil.copy(camera['filename'], os.path.join(dirpath, 'images', filename))
+            images.append(Image(cid, qvec, tvec, 1, filename, xys, point3D_ids))
+
+        for tid, tracker in data['trackers'].items():
+            image_ids = []
+            point2D_idxs = []
+            # find all the cameras that reference this 3D point
+            for cid, camera in data['cameras'].items():
+                if tid in camera['trackers']:
+                    image_ids.append(cid)
+                    point2D_idxs.append(list(camera['trackers'].keys()).index(tid))
+            points3D.append(Point3D(tid, tracker['co'], tracker['rgb'], tracker.get('error', 0.0), image_ids, point2D_idxs))
+
+        write_model(os.path.join(dirpath, 'sparse'), '.txt', cameras, images, points3D)
+
+    # exit if we're not asked to perform dense reconstruction
+    if not (properties.import_points or properties.import_poisson or properties.import_delaunay):
+        return
 
     # calculate all the paths used through COLMAP processing
     colmap_path = get_binary_path(binpath, 'colmap')
@@ -129,64 +141,72 @@ def load(properties, data, *args, **kwargs):
     poisson_mesh_path = os.path.join(dense_path, 'meshed-poisson.ply')
     delaunay_mesh_path = os.path.join(dense_path, 'meshed-delaunay.ply')
 
-    args = [
-        colmap_path,
-        'image_undistorter',
-        '--image_path', os.path.join(dirpath, 'images'),
-        '--input_path', sparse_path,
-        '--output_path', dense_path,
-        '--output_type', 'COLMAP',
-    ] + (['--max_image_size', str(properties.max_image_size)] if properties.max_image_size > 0 else [])
-    print(' '.join(args))
-    retcode = subprocess.call(args, env=env)
-    if retcode != 0:
-        raise Exception('COLMAP image_undistorter failed, see system console for details')
+    # image_undistorter, patch_match_stereo and stereo_fusion required for dense reconstruction
+    if set(os.listdir(os.path.join(dirpath, 'images'))) != set(os.listdir(os.path.join(dense_path, 'images'))) or bin_model_files != set(os.listdir(os.path.join(dense_path, 'sparse'))).intersection(bin_model_files):
+        args = [
+            colmap_path,
+            'image_undistorter',
+            '--image_path', os.path.join(dirpath, 'images'),
+            '--input_path', sparse_path,
+            '--output_path', dense_path,
+            '--output_type', 'COLMAP',
+        ] + (['--max_image_size', str(properties.max_image_size)] if properties.max_image_size > 0 else [])
+        print(' '.join(args))
+        retcode = subprocess.call(args, env=env)
+        if retcode != 0:
+            raise Exception('COLMAP image_undistorter failed, see system console for details')
 
-    args = [
-        colmap_path,
-        'patch_match_stereo',
-        '--workspace_path', dense_path,
-    ]
-    print(' '.join(args))
-    retcode = subprocess.call(args, env=env)
-    if retcode != 0:
-        raise Exception('COLMAP patch_match_stereo failed, see system console for details')
+        args = [
+            colmap_path,
+            'patch_match_stereo',
+            '--workspace_path', dense_path,
+        ]
+        print(' '.join(args))
+        retcode = subprocess.call(args, env=env)
+        if retcode != 0:
+            raise Exception('COLMAP patch_match_stereo failed, see system console for details')
 
-    args = [
-        colmap_path,
-        'stereo_fusion',
-        '--workspace_path', dense_path,
-        '--output_path', point_cloud_path,
-    ]
-    print(' '.join(args))
-    retcode = subprocess.call(args, env=env)
-    if retcode != 0:
-        raise Exception('COLMAP stereo_fusion failed, see system console for details')
-        
-    args = [
-        colmap_path,
-        'poisson_mesher',
-        '--input_path', point_cloud_path,
-        '--output_path', poisson_mesh_path,
-    ]
-    print(' '.join(args))
-    retcode = subprocess.call(args, env=env)
-    if retcode != 0:
-        raise Exception('COLMAP poisson_mesher failed, see system console for details')
-        
-    args = [
-        colmap_path,
-        'delaunay_mesher',
-        '--input_path', dense_path,
-        '--output_path', delaunay_mesh_path,
-    ]
-    print(' '.join(args))
-    retcode = subprocess.call(args, env=env)
-    if retcode != 0:
-        raise Exception('COLMAP delaunay_mesher failed, see system console for details')
+        args = [
+            colmap_path,
+            'stereo_fusion',
+            '--workspace_path', dense_path,
+            '--output_path', point_cloud_path,
+        ]
+        print(' '.join(args))
+        retcode = subprocess.call(args, env=env)
+        if retcode != 0:
+            raise Exception('COLMAP stereo_fusion failed, see system console for details')
+    
+    if properties.import_poisson and (overwrite or not os.path.exists(poisson_mesh_path)):
+        args = [
+            colmap_path,
+            'poisson_mesher',
+            '--input_path', point_cloud_path,
+            '--output_path', poisson_mesh_path,
+        ]
+        print(' '.join(args))
+        retcode = subprocess.call(args, env=env)
+        if retcode != 0:
+            raise Exception('COLMAP poisson_mesher failed, see system console for details')
+    
+    if properties.import_delaunay and (overwrite or not os.path.exists(delaunay_mesh_path)):
+        args = [
+            colmap_path,
+            'delaunay_mesher',
+            '--input_path', dense_path,
+            '--output_path', delaunay_mesh_path,
+        ]
+        print(' '.join(args))
+        retcode = subprocess.call(args, env=env)
+        if retcode != 0:
+            raise Exception('COLMAP delaunay_mesher failed, see system console for details')
 
-    if properties.import_points:
-        set_active_collection(**kwargs)
-        if os.path.exists(point_cloud_path): bpy.ops.import_mesh.ply(filepath=point_cloud_path)
-        if os.path.exists(poisson_mesh_path): bpy.ops.import_mesh.ply(filepath=poisson_mesh_path)
-        if os.path.exists(delaunay_mesh_path): bpy.ops.import_mesh.ply(filepath=delaunay_mesh_path)
+    set_active_collection(**kwargs)
+    if properties.import_points and os.path.exists(point_cloud_path):
+        bpy.ops.import_mesh.ply(filepath=point_cloud_path)
+
+    if properties.import_poisson and os.path.exists(poisson_mesh_path):
+        bpy.ops.import_mesh.ply(filepath=poisson_mesh_path)
+
+    if properties.import_delaunay and os.path.exists(delaunay_mesh_path):
+        bpy.ops.import_mesh.ply(filepath=delaunay_mesh_path)

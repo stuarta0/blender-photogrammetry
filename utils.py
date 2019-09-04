@@ -45,9 +45,10 @@ def set_active_layer_collection(view_layers, collection_name, parent_name=None):
     return None
 
 
-def set_active_collection(name='Photogrammetry', parent=None, **kwargs):
+def set_active_collection(name=None, parent=None, **kwargs):
     scene = kwargs.get('scene', None)
     if scene:
+        name = name or get_prefs().collection_name
         col = (parent or scene.collection).children.get(name)
         if not col:
             col = bpy.data.collections.new(name)
@@ -136,6 +137,9 @@ class CroppingPrettyPrinter(PrettyPrinter):
                     write(f'({len(items) - self.maxdict} more)...')
                 break
 
+
+def get_prefs():
+    return bpy.context.preferences.addons['blender-photogrammetry'].preferences
 
 # def create_debug_svg(bpy_module, bundle_path):
 #     list_path = listpath_from_bundle(bundle_path)
