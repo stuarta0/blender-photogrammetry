@@ -92,8 +92,10 @@ def load(properties, data, *args, **kwargs):
                 if not resolution:
                     resolution = get_image_size(camera['filename'])
                 # PINHOLE params: [fx, fy, cx, cy]
-                params = [camera['f'], camera['f']] + list(camera.get('principal', map(lambda a: a / 2.0, resolution)))
-                cameras.append(Camera(1, 'PINHOLE', resolution[0], resolution[1], params))
+                # params = [camera['f'], camera['f']] + list(camera.get('principal', tuple(map(lambda a: a / 2.0, resolution))))
+                # RADIAL params: [f, cx, cy, k1, k2]
+                params = [camera['f'], ] + list(camera.get('principal', tuple(map(lambda a: a / 2.0, resolution)))) + (list(camera.get('k', [])) + [0, 0])[:2]
+                cameras.append(Camera(1, 'RADIAL', resolution[0], resolution[1], params))
 
             R = Matrix(camera['R'])
             t = Vector(camera['t'])
