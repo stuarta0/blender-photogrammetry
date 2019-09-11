@@ -45,7 +45,6 @@ If you run into issues on linux, you may need to install ```libjpeg62``` and ```
 
 ## Roadmap
 
-* COLMAP is able to generate a delaunay and poisson mesh, but requires a sparse workspace in COLMAP format. Since the current dense reconstruction uses the PMVS workspace, we can't currently generate a mesh.
 * Enable UI updates during processing if Blender 2.8 supports it (not feasible with Blender 2.79b)
 
 ## Sources
@@ -70,7 +69,7 @@ Source code and precompiled binaries: https://github.com/pmoulon/CMVS-PMVS
 
 #### License
 
-In case you use this software, include an acknowledgement that PMVS2 was developped by Yasutaka Furukawa (University of Illinois at Urbana-Champaign, University of Washington) and Jean Ponce (University of Illinois at Urbana-Champaign, Ecole Normale SupÃ©rieure).
+In case you use this software, include an acknowledgement that PMVS2 was developped by Yasutaka Furukawa (University of Illinois at Urbana-Champaign, University of Washington) and Jean Ponce (University of Illinois at Urbana-Champaign, Ecole Normale Supérieure).
 
 PMVS is distributed under the GNU General Public License.
 
@@ -78,11 +77,11 @@ For commercial licencing of the software, please contact Yasutaka Furukawa.
 
 # Thanks
 
-Special thanks to [Noah Snavely](https://github.com/snavely), the author of Bundler, for giving me some pointers on getting the right matrix representations in the bundle.out file. Also thanks to [Sebastian König](https://www.blendernetwork.org/sebastian-koenig) for help in testing the addon under Linux and with varied datasets.
+Special thanks to [Noah Snavely](https://github.com/snavely), the author of Bundler, for giving me some pointers on getting the right matrix representations in the bundle.out file. Also thanks to [Sebastian König](https://www.blendernetwork.org/sebastian-koenig) for help in testing the addon under Linux and with various datasets.
 
 # License
 
-Blender Photogrammetry Addon Copyright (C) 2018 Stuart Attenborrow
+Blender Photogrammetry Addon Copyright (C) 2019 Stuart Attenborrow
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
