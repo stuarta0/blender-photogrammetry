@@ -9,7 +9,7 @@ from math import pi
 from mathutils import Matrix, Vector, Euler
 
 from ..openmvs.utils import interface_colmap, reconstruct_mesh, texture_mesh
-from ..utils import set_active_collection, get_binpath_for_module, get_binary_path, get_image_size
+from ..utils import set_active_collection, get_binpath_for_module, get_binary_path, get_image_size, get_dominant_colours
 from .read_model import Camera, Image, Point3D
 from .write_model import write_model
 
@@ -225,10 +225,24 @@ def load(properties, data, *args, **kwargs):
         if retcode != 0:
             raise Exception('COLMAP model_converter failed, see system console for details')
         
+        # calculate a dominant colour in the first image to use as the empty colour when texturing
+        empty_colour = None
+        try:
+            print('Calculating dominant colour from first image...')
+            img = bpy.data.images.load(next(v for v in data['cameras'].values())['filename'])
+            # get_dominant_colours = [ ((r,g,b), count), ... ]
+            empty_colour = max(get_dominant_colours(img), key=lambda i: i[1])[0]
+            print(empty_colour)
+            bpy.data.images.remove(img)
+        except Exception as ex:
+            # skip empty colour
+            print('Could not determine domininant colour:', ex)
+            pass
+
         # now that the model has been converted, run openMVS stages
         interface_colmap(openmvs_workspace, dense_path, os.path.join(openmvs_workspace, 'scene.mvs'))
         reconstruct_mesh(openmvs_workspace)
-        texture_mesh(openmvs_workspace)
+        texture_mesh(openmvs_workspace, empty_colour=empty_colour)
 
     set_active_collection(**kwargs)
     if properties.import_points and os.path.exists(point_cloud_path):
