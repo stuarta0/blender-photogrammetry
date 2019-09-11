@@ -46,7 +46,7 @@ def reconstruct_mesh(working_folder, input_file='scene.mvs', output_file='scene_
         raise Exception(f'openMVS {os.path.basename(exe)} failed, see system console for details')
 
 
-def texture_mesh(working_folder, input_file='scene_mesh.mvs', output_file='scene_mesh_texture.obj', export_type='obj'):
+def texture_mesh(working_folder, input_file='scene_mesh.mvs', output_file='scene_mesh_texture.obj', export_type='obj', empty_colour=None):
     binpath = get_binpath_for_module(os.path.realpath(__file__))
     exe = get_binary_path(binpath, 'TextureMesh')
     args = [
@@ -56,6 +56,19 @@ def texture_mesh(working_folder, input_file='scene_mesh.mvs', output_file='scene
         '--output-file', output_file,
         '--export-type', export_type,
     ]
+    if empty_colour:
+        try:
+            # create a decimal from a collection of (r, g, b)
+            empty_colour = (empty_colour[0] << 16) + (empty_colour[1] << 8) + empty_colour[2]
+        except:
+            pass
+
+        try:
+            args += ['--empty-color', str(int(empty_colour))]
+        except:
+            # empty colour wasn't a single integer value, skip
+            pass
+    
     print(' '.join(args))
     retcode = subprocess.call(args)
     if retcode != 0:
