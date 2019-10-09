@@ -1,7 +1,9 @@
 import os
 import bpy
+import numpy as np
 import platform
 from pprint import PrettyPrinter
+from .kmeans import K_Means
 
 
 osname = platform.system().lower()
@@ -140,6 +142,28 @@ class CroppingPrettyPrinter(PrettyPrinter):
 
 def get_prefs():
     return bpy.context.preferences.addons['blender-photogrammetry'].preferences
+
+
+def get_dominant_colours(image, num_colours=1, samples=1000):
+    # image = bpy.data.images['0001.jpg']
+    width, height = image.size
+
+    # get image pixels as 0-255 range, reshaped into RGBA arrays, with alpha channel removed
+    pixels = np.delete((np.array(image.pixels) * 255).astype(int).reshape(width * height, 4), 3, 1)
+
+    # decimated by number of samples
+    pixels = pixels[::int((width * height) / samples) or 1]
+
+    clf = K_Means(k=num_colours)
+    clf.fit(pixels)
+
+    #for centroid in clf.centroids:
+    #    print(clf.centroids[centroid])
+    #for classification in clf.classifications:
+    #    print(classification, len(clf.classifications[classification]))
+    
+    return [(tuple(map(int, clf.centroids[classification])), len(clf.classifications[classification])) for classification in clf.classifications]
+
 
 # def create_debug_svg(bpy_module, bundle_path):
 #     list_path = listpath_from_bundle(bundle_path)
