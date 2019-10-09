@@ -145,6 +145,12 @@ def load(properties, data, *args, **kwargs):
     openmvs_workspace = os.path.join(dirpath, 'openmvs')
     openmvs_mesh_path = os.path.join(openmvs_workspace, 'scene_mesh_texture.obj')
 
+    # for linux, where we don't have a colmap binary, generate a script instead
+    generate_shell_script = not colmap_path
+    shell_script = []
+    if generate_shell_script:
+        colmap_path = '$COLMAP_PATH'
+
     # image_undistorter, patch_match_stereo and stereo_fusion required for dense reconstruction
     try:
         reconstruct = set(os.listdir(os.path.join(dirpath, 'images'))) != set(os.listdir(os.path.join(dense_path, 'images'))) or bin_model_files != set(os.listdir(os.path.join(dense_path, 'sparse'))).intersection(bin_model_files)
@@ -160,20 +166,14 @@ def load(properties, data, *args, **kwargs):
             '--output_path', dense_path,
             '--output_type', 'COLMAP',
         ] + (['--max_image_size', str(properties.max_image_size)] if properties.max_image_size > 0 else [])
-        print(' '.join(args))
-        retcode = subprocess.call(args, env=env)
-        if retcode != 0:
-            raise Exception('COLMAP image_undistorter failed, see system console for details')
+        shell_script.append(args)
 
         args = [
             colmap_path,
             'patch_match_stereo',
             '--workspace_path', dense_path,
         ]
-        print(' '.join(args))
-        retcode = subprocess.call(args, env=env)
-        if retcode != 0:
-            raise Exception('COLMAP patch_match_stereo failed, see system console for details')
+        shell_script.append(args)
 
         args = [
             colmap_path,
@@ -181,10 +181,7 @@ def load(properties, data, *args, **kwargs):
             '--workspace_path', dense_path,
             '--output_path', point_cloud_path,
         ]
-        print(' '.join(args))
-        retcode = subprocess.call(args, env=env)
-        if retcode != 0:
-            raise Exception('COLMAP stereo_fusion failed, see system console for details')
+        shell_script.append(args)
     
     if properties.import_poisson and (overwrite or not os.path.exists(poisson_mesh_path)):
         args = [
@@ -193,10 +190,7 @@ def load(properties, data, *args, **kwargs):
             '--input_path', point_cloud_path,
             '--output_path', poisson_mesh_path,
         ]
-        print(' '.join(args))
-        retcode = subprocess.call(args, env=env)
-        if retcode != 0:
-            raise Exception('COLMAP poisson_mesher failed, see system console for details')
+        shell_script.append(args)
     
     if properties.import_delaunay and (overwrite or not os.path.exists(delaunay_mesh_path)):
         args = [
@@ -205,10 +199,7 @@ def load(properties, data, *args, **kwargs):
             '--input_path', dense_path,
             '--output_path', delaunay_mesh_path,
         ]
-        print(' '.join(args))
-        retcode = subprocess.call(args, env=env)
-        if retcode != 0:
-            raise Exception('COLMAP delaunay_mesher failed, see system console for details')
+        shell_script.append(args)
 
     if properties.import_openmvs and (overwrite or not os.path.exists(openmvs_mesh_path)):
         # convert the dense model into TXT format as openMVS only supports TXT
@@ -220,10 +211,7 @@ def load(properties, data, *args, **kwargs):
             '--output_path', os.path.join(dense_path, 'sparse'),
             '--output_type', 'TXT'
         ]
-        print(' '.join(args))
-        retcode = subprocess.call(args, env=env)
-        if retcode != 0:
-            raise Exception('COLMAP model_converter failed, see system console for details')
+        shell_script.append(args)
         
         # calculate a dominant colour in the first image to use as the empty colour when texturing
         empty_colour = None
@@ -240,19 +228,29 @@ def load(properties, data, *args, **kwargs):
             pass
 
         # now that the model has been converted, run openMVS stages
-        interface_colmap(openmvs_workspace, dense_path, os.path.join(openmvs_workspace, 'scene.mvs'))
-        reconstruct_mesh(openmvs_workspace)
-        texture_mesh(openmvs_workspace, empty_colour=empty_colour)
+        shell_script.append(interface_colmap(openmvs_workspace, dense_path, os.path.join(openmvs_workspace, 'scene.mvs'), execute=False))
+        shell_script.append(reconstruct_mesh(openmvs_workspace, execute=False))
+        shell_script.append(texture_mesh(openmvs_workspace, empty_colour=empty_colour, execute=False))
 
-    set_active_collection(**kwargs)
-    if properties.import_points and os.path.exists(point_cloud_path):
-        bpy.ops.import_mesh.ply(filepath=point_cloud_path)
+    if generate_shell_script:
+        with open(os.path.join(dirpath, 'script.sh'), 'w') as f:
+            f.writelines([subprocess.list2cmdline(args) + os.linesep for args in shell_script])
+    else:
+        for cmd_args in shell_script:
+            print(subprocess.list2cmdline(cmd_args))
+            retcode = subprocess.call(cmd_args, env=env)
+            if retcode != 0:
+                raise Exception('Command failed, see system console for details')
 
-    if properties.import_poisson and os.path.exists(poisson_mesh_path):
-        bpy.ops.import_mesh.ply(filepath=poisson_mesh_path)
+        set_active_collection(**kwargs)
+        if properties.import_points and os.path.exists(point_cloud_path):
+            bpy.ops.import_mesh.ply(filepath=point_cloud_path)
 
-    if properties.import_delaunay and os.path.exists(delaunay_mesh_path):
-        bpy.ops.import_mesh.ply(filepath=delaunay_mesh_path)
+        if properties.import_poisson and os.path.exists(poisson_mesh_path):
+            bpy.ops.import_mesh.ply(filepath=poisson_mesh_path)
 
-    if properties.import_openmvs and os.path.exists(openmvs_mesh_path):
-        bpy.ops.import_scene.obj(filepath=openmvs_mesh_path, axis_forward='Y', axis_up='Z')
+        if properties.import_delaunay and os.path.exists(delaunay_mesh_path):
+            bpy.ops.import_mesh.ply(filepath=delaunay_mesh_path)
+
+        if properties.import_openmvs and os.path.exists(openmvs_mesh_path):
+            bpy.ops.import_scene.obj(filepath=openmvs_mesh_path, axis_forward='Y', axis_up='Z')
