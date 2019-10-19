@@ -1,5 +1,6 @@
 from bpy.props import StringProperty, BoolProperty, IntProperty, FloatProperty, PointerProperty
 from bpy.types import PropertyGroup
+from ..utils import osname
 
 
 class PHOTOGRAMMETRY_PG_input_colmap(PropertyGroup):
@@ -43,7 +44,10 @@ class PHOTOGRAMMETRY_PG_output_colmap(PropertyGroup):
         layout.prop(self, 'dirpath')
         layout.prop(self, 'overwrite')
         layout.prop(self, 'max_image_size')
-        layout.prop(self, 'import_points')
-        layout.prop(self, 'import_poisson')
-        layout.prop(self, 'import_delaunay')
-        layout.prop(self, 'import_openmvs')
+
+        # allow colmap to export it's format 
+        if osname == 'windows':
+            layout.prop(self, 'import_points')
+            layout.prop(self, 'import_poisson')
+            layout.prop(self, 'import_delaunay')
+            layout.prop(self, 'import_openmvs')

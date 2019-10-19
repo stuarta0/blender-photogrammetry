@@ -10,15 +10,19 @@ from mathutils import Matrix, Vector, Euler
 from ..utils import get_binpath_for_module, get_binary_path
 
 
-def interface_colmap(working_folder, input_file, output_file):
+def interface_colmap(working_folder, input_file, output_file, execute=True):
     """
     Import/export 3D reconstruction from/to COLMAP format as TXT (the only documented format).
     In order to import a scene, run COLMAP SfM and next undistort the images (only PINHOLE
     camera model supported for the moment); and convert the BIN scene to TXT by importing in
     COLMAP the sparse scene stored in 'dense' folder and exporting it as TXT.
+
+    If the OpenMVS binary InterfaceCOLMAP is not found, the command line will be replaced with
+    $OPENMVS_INTERFACECOLMAP such that an environment variable could be used instead.
+    :returns: The command line args that were executed (if execute=True).
     """
     binpath = get_binpath_for_module(os.path.realpath(__file__))
-    exe = get_binary_path(binpath, 'InterfaceCOLMAP')
+    exe = get_binary_path(binpath, 'InterfaceCOLMAP') or '$OPENMVS_INTERFACECOLMAP'
     args = [
         exe,
         '--working-folder', working_folder,
@@ -26,14 +30,21 @@ def interface_colmap(working_folder, input_file, output_file):
         '--output-file', output_file,
     ]
     print(' '.join(args))
-    retcode = subprocess.call(args)
-    if retcode != 0:
-        raise Exception(f'openMVS {os.path.basename(exe)} failed, see system console for details')
+    if execute:
+        retcode = subprocess.call(args)
+        if retcode != 0:
+            raise Exception(f'openMVS {os.path.basename(exe)} failed, see system console for details')
+    return args
 
 
-def reconstruct_mesh(working_folder, input_file='scene.mvs', output_file='scene_mesh.mvs'):
+def reconstruct_mesh(working_folder, input_file='scene.mvs', output_file='scene_mesh.mvs', execute=True):
+    """
+    If the OpenMVS binary ReconstructMesh is not found, the command line will be replaced with
+    $OPENMVS_RECONSTRUCTMESH such that an environment variable could be used instead.
+    :returns: The command line args that were executed (if execute=True).
+    """
     binpath = get_binpath_for_module(os.path.realpath(__file__))
-    exe = get_binary_path(binpath, 'ReconstructMesh')
+    exe = get_binary_path(binpath, 'ReconstructMesh') or '$OPENMVS_RECONSTRUCTMESH'
     args = [
         exe,
         '--working-folder', working_folder,
@@ -41,14 +52,21 @@ def reconstruct_mesh(working_folder, input_file='scene.mvs', output_file='scene_
         '--output-file', output_file,
     ]
     print(' '.join(args))
-    retcode = subprocess.call(args)
-    if retcode != 0:
-        raise Exception(f'openMVS {os.path.basename(exe)} failed, see system console for details')
+    if execute:
+        retcode = subprocess.call(args)
+        if retcode != 0:
+            raise Exception(f'openMVS {os.path.basename(exe)} failed, see system console for details')
+    return args
 
 
-def texture_mesh(working_folder, input_file='scene_mesh.mvs', output_file='scene_mesh_texture.obj', export_type='obj', empty_colour=None):
+def texture_mesh(working_folder, input_file='scene_mesh.mvs', output_file='scene_mesh_texture.obj', export_type='obj', empty_colour=None, execute=True):
+    """
+    If the OpenMVS binary TextureMesh is not found, the command line will be replaced with
+    $OPENMVS_TEXTUREMESH such that an environment variable could be used instead.
+    :returns: The command line args that were executed (if execute=True).
+    """
     binpath = get_binpath_for_module(os.path.realpath(__file__))
-    exe = get_binary_path(binpath, 'TextureMesh')
+    exe = get_binary_path(binpath, 'TextureMesh') or '$OPENMVS_TEXTUREMESH'
     args = [
         exe,
         '--working-folder', working_folder,
@@ -70,6 +88,8 @@ def texture_mesh(working_folder, input_file='scene_mesh.mvs', output_file='scene
             pass
     
     print(' '.join(args))
-    retcode = subprocess.call(args)
-    if retcode != 0:
-        raise Exception(f'openMVS {os.path.basename(exe)} failed, see system console for details')
+    if execute:
+        retcode = subprocess.call(args)
+        if retcode != 0:
+            raise Exception(f'openMVS {os.path.basename(exe)} failed, see system console for details')
+    return args
