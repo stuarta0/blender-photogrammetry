@@ -4,20 +4,20 @@ import shutil
 
 packages = [
     {
-        "name": "blender-photogrammetry-1.0-linux",
+        "name": "blender-photogrammetry-1.1-linux",
         "platform": "linux",
-        "features": ["blender", "bundler", "imagemodeler", "pmvs"],
+        "features": ["blender", "bundler", "colmap", "imagemodeler", "meshroom", "openmvs", "pmvs", "visualsfm"],
     },
     {
-        "name": "blender-photogrammetry-1.0-windows",
+        "name": "blender-photogrammetry-1.1-windows",
         "platform": "windows",
-        "features": ["blender", "bundler", "colmap", "imagemodeler", "pmvs"],
+        "features": ["blender", "bundler", "colmap", "imagemodeler", "meshroom", "openmvs", "pmvs", "visualsfm"],
     },
-    {
-        "name": "blender-photogrammetry-1.0-windows-no-colmap",
-        "platform": "windows",
-        "features": ["blender", "bundler", "imagemodeler", "pmvs"],
-    }
+    # {
+    #     "name": "blender-photogrammetry-1.1-mac",
+    #     "platform": "darwin",
+    #     "features": ["blender", "bundler", "imagemodeler", "pmvs"],
+    # }
 ]
 
 for package in packages:
