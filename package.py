@@ -34,6 +34,7 @@ for package in packages:
     # copy core addon module files
     shutil.copy(os.path.join(cwd, '__init__.py'), basepath)
     shutil.copy(os.path.join(cwd, 'utils.py'), basepath)
+    shutil.copy(os.path.join(cwd, 'kmeans.py'), basepath)
 
     # copy each feature module
     for feature in package['features']:
