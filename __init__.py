@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Dense Reconstruction",
     "author": "Stuart Attenborrow",
-    "version": (1, 0, 0),
+    "version": (1, 1, 0),
     "blender": (2, 80, 0),
     "location": "Properties > Scene",
     "description": "Provides the ability to generate dense point clouds using various photogrammetry tools, from inputs including Blender's motion tracking output",
