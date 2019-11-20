@@ -141,7 +141,11 @@ class CroppingPrettyPrinter(PrettyPrinter):
 
 
 def get_prefs():
-    return bpy.context.preferences.addons['blender-photogrammetry'].preferences
+    try:
+        return bpy.context.preferences.addons['blender-photogrammetry'].preferences
+    except KeyError:
+        # naming difference between debugging session (blender-photogrammetry) and production (blender_photogrammetry)
+        return bpy.context.preferences.addons['blender_photogrammetry'].preferences
 
 
 def get_dominant_colours(image, num_colours=1, samples=1000):
