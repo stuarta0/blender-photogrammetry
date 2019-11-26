@@ -33,10 +33,6 @@ def extract(properties, *args, **kwargs):
     """
     filename = bpy.path.abspath(properties.filepath)
     imagepaths = list(filter(None, bpy.path.abspath(properties.imagepath).split(';')))
-
-    # TODO: load first referenced image in bpy.data and get size
-    # img = bpy.data.images.load(os.path.join(os.path.dirname(imagepath), filepath))
-    # 'resolution': img.size
     data = {
         'trackers': {},
         'cameras': {},
@@ -56,6 +52,11 @@ def extract(properties, *args, **kwargs):
 
     for shot in doc.findall('SHOT'):
         cfrm = shot.find('CFRM')
+
+        # test data indicates frame wasn't matched if cfrm doesn't reference a camera
+        if 'cf' not in cfrm.attrib:
+            continue
+        
         cinf = cinfs.get(cfrm.attrib['cf'], {})
         intrinsics = cfrm.attrib
         intrinsics.setdefault('rd', cinf.get('rd', 0))
