@@ -69,7 +69,7 @@ Source code and precompiled binaries: https://github.com/pmoulon/CMVS-PMVS
 
 #### License
 
-In case you use this software, include an acknowledgement that PMVS2 was developped by Yasutaka Furukawa (University of Illinois at Urbana-Champaign, University of Washington) and Jean Ponce (University of Illinois at Urbana-Champaign, Ecole Normale Supérieure).
+In case you use this software, include an acknowledgement that PMVS2 was developed by Yasutaka Furukawa (University of Illinois at Urbana-Champaign, University of Washington) and Jean Ponce (University of Illinois at Urbana-Champaign, Ecole Normale Supérieure).
 
 PMVS is distributed under the GNU General Public License.
 
