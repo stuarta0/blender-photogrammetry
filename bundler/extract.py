@@ -9,12 +9,24 @@ from ..utils import get_image_size
 
 # https://github.com/snavely/bundler_sfm
 def extract(properties, *args, **kargs):
+    """
+    Reads the bundler file format from a directory
+    """
     dirpath = bpy.path.abspath(properties.dirpath)
+    if not dirpath:
+        raise AttributeError('Bundler Data Directory must be provided.\nEnsure bundle.out and list.txt exist.')
+    
+    bundle_path = os.path.join(dirpath, 'bundle.out')
+    image_path = os.path.join(dirpath, 'list.txt')
+    if not os.path.exists(bundle_path):
+        raise AttributeError('Bundler Data Directory does not contain bundle.out')
+    if not os.path.exists(image_path):
+        raise AttributeError('Bundler Data Directory does not contain list.txt')
 
-    with open(os.path.join(dirpath, 'bundle.out'), 'r') as f:
+    with open(bundle_path, 'r') as f:
         lines = f.readlines()
 
-    with open(os.path.join(dirpath, 'list.txt'), 'r') as f:
+    with open(image_path, 'r') as f:
         images = f.readlines()  # TODO: make sure focal length is removed if present
 
     cameras = {}

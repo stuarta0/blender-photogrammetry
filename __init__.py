@@ -1,5 +1,5 @@
 bl_info = {
-    "name": "Dense Reconstruction",
+    "name": "Dense Photogrammetry Reconstruction",
     "author": "Stuart Attenborrow",
     "version": (1, 2, 0),
     "blender": (2, 80, 0),
@@ -29,6 +29,7 @@ modules = [name for name in os.listdir(os.path.dirname(__file__)) if os.path.isd
 inputs: Dict[str, PhotogrammetryModule] = {}
 outputs: Dict[str, PhotogrammetryModule] = {}
 binaries: List[str] = []
+
 for m in modules:
     try:
         currentModule = import_module(f'.{m}', __name__)
@@ -74,6 +75,7 @@ class PHOTOGRAMMETRY_OT_process(bpy.types.Operator):
     def execute(self, context):
         scene = context.scene
         p = scene.photogrammetry
+        p.last_error = ''
         
         print('process photogrammetry')
         print(p.input)
@@ -85,11 +87,20 @@ class PHOTOGRAMMETRY_OT_process(bpy.types.Operator):
         extract_props = getattr(p, p.input, None)
         load_props = getattr(p, p.output, None)
 
-        data = inputs[p.input].func(extract_props, scene=scene)
+        try:
+            data = inputs[p.input].func(extract_props, scene=scene)
+        except AttributeError as ex:
+            p.last_error = str(ex)
+            return {'FINISHED'}
+        
         pprint = CroppingPrettyPrinter(maxlist=10, maxdict=10)
         pprint.pprint(data)
         if data:
-            outputs[p.output].func(load_props, data, scene=scene)
+            try:
+                outputs[p.output].func(load_props, data, scene=scene)
+            except AttributeError as ex:
+                p.last_error = str(ex)
+                return {'FINISHED'}
 
         return {'FINISHED'}
 
@@ -118,8 +129,11 @@ class PHOTOGRAMMETRY_OT_process(bpy.types.Operator):
 #     out_colmap: PointerProperty(type=PHOTOGRAMMETRY_PG_colmap)
 
 def draw_master(self, layout):
+    # self = PHOTOGRAMMETRY_PG_master instance
+    # layout = bpy.data.screens['Layout']...UILayout
     layout.use_property_split = True # Active single-column layout
     layout.prop(self, 'input')
+
     try:
         getattr(self, self.input).draw(layout)
     except AttributeError:
@@ -135,13 +149,28 @@ def draw_master(self, layout):
     layout.separator()
     layout.operator("photogrammetry.process", text='Process')
 
+    if self.last_error:
+        layout.separator()
+        box = layout.box()
+        # waiting for https://developer.blender.org/D7496
+        for line in self.last_error.split('\n'):
+            box.label(text=line)
+
+
+def on_input_updated(self, context):
+    self.last_error = ''
+
+def on_output_updated(self, context):
+    self.last_error = ''
+
 attributes = {
     "input": EnumProperty(name='From', items=tuple(
         (key, importer.name, importer.description) for key, importer in inputs.items()
-    )),
+    ), update=on_input_updated),
     "output": EnumProperty(name='To', items=tuple(
         (key, exporter.name, exporter.description) for key, exporter in outputs.items()
-    )),
+    ), update=on_output_updated),
+    "last_error": StringProperty(name='Error')
 }
 for key, importer in inputs.items():
     if importer.property_group:

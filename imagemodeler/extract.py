@@ -33,6 +33,9 @@ def extract(properties, *args, **kwargs):
     """
     filename = bpy.path.abspath(properties.filepath)
     imagepaths = list(filter(None, bpy.path.abspath(properties.imagepath).split(';')))
+    if not os.path.exists(filename):
+        raise AttributeError(f'Unable to locate ImageModeler file:\n"{filename}"')
+
     data = {
         'trackers': {},
         'cameras': {},
@@ -92,7 +95,7 @@ def extract(properties, *args, **kwargs):
 
             # still didn't find file?
             if not filenames:
-                raise Exception('Image not found for camera {}: {}'.format(shot.attrib['i'], shot.attrib['n']))
+                raise AttributeError(f'ImageModeler image not found for camera "{shot.attrib['i']}":\n"{shot.attrib['n']}"')
 
         camera = data['cameras'].setdefault(int(shot.attrib['i']), {
             'filename': filenames[0],

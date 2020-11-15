@@ -88,9 +88,15 @@ def extract(properties, *args, **kwargs):
     """
     scene = kwargs.get('scene', None)
     dirpath = bpy.path.abspath(properties.dirpath)
-    if not scene or not dirpath:
-        raise Exception('Scene and dirpath not provided to blender.extract')
-    
+    if not scene:
+        raise AttributeError('Scene must be provided to blender.extract')
+    if not dirpath:
+        raise AttributeError('Image Directory must be provided.\n(for saving temporary images from Blender)')
+    if not properties.clip:
+        raise AttributeError('Must provide a valid Blender movie clip.\nIt must be tracked, solved and 3D reconstructed first.')
+    if not properties.clip in bpy.data.movieclips:
+        raise AttributeError(f'Movie clip "{properties.clip}" not found in current Blender file')
+
     clip = bpy.data.movieclips[properties.clip]
     frame_range = range(scene.frame_start, scene.frame_end + 1, properties.frame_step)
 
@@ -112,6 +118,9 @@ def extract(properties, *args, **kwargs):
         # project the tracked points bundle into world space
         # <blender source>/release/scripts/startup/bl_operators/clip.py, CLIP_OT_bundles_to_mesh()
         reconstruction = tracking.objects.active.reconstruction
+        if not reconstruction.is_valid:
+            raise AttributeError(f'Movie clip "{properties.clip}" reconstruction is not valid.\nPlease ensure you have tracked and solved the movie clip,\nand have a valid 3D reconstruction before processing.')
+
         framenr = scene.frame_current - clip.frame_start + 1
         reconstructed_matrix = reconstruction.cameras.matrix_from_frame(frame=framenr)
         mw = scene.camera.matrix_world @ reconstructed_matrix.inverted()

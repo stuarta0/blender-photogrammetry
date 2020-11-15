@@ -39,6 +39,10 @@ Check the LoadNVM function in util.h of Multicore bundle adjustment code for mor
 def extract(properties, *args, **kargs):
     filepath = bpy.path.abspath(properties.filepath)
     imagepaths = list(filter(None, bpy.path.abspath(properties.imagepath).split(';')))
+    if not os.path.exists(filepath):
+        if not filepath:
+            raise AttributeError(f'VisualSfM filepath must be provided')
+        raise AttributeError(f'Unable to locate VisualSfM file:\n"{filepath}"')
 
     # # TODO: read list.txt to get image paths to detect image size
     # resolution_x = int(scene.render.resolution_x * (scene.render.resolution_percentage / 100))
@@ -81,7 +85,7 @@ def extract(properties, *args, **kargs):
 
             # still didn't find file?
             if not filenames:
-                raise Exception(f'Image not found for camera {i}: {match.group("name")}')
+                raise AttributeError(f'VisualSfM image not found for camera {i}:\n"{match.group("name")}""')
 
         # create cameras
         q = Quaternion(tuple(map(float, [match.group('QW'), match.group('QX'), match.group('QY'), match.group('QZ')])))
@@ -124,7 +128,7 @@ def extract(properties, *args, **kargs):
         idx = 5 + int(total_cameras) + i
         match = marker_re.match(lines[idx])
         if not match:
-            raise Exception(f'Marker {i} did not match the format specification')
+            raise AttributeError(f'VisualSfM marker {i} did not match the format specification')
         
         trackers.setdefault(i, {
             'co': tuple(map(float, [match.group('X'), match.group('Y'), match.group('Z')])),
@@ -135,7 +139,7 @@ def extract(properties, *args, **kargs):
         for m in range(int(match.group('num_measurements'))):
             measurement_match = measurement_re.match(cur)
             if not measurement_match:
-                raise Exception(f'Marker {i} did not match measurement {m} format specification')
+                raise AttributeError(f'VisualSfM marker {i} did not match measurement {m} format specification')
             # Let the measurement be (mx, my), which is relative to principal point (typically image center)
             # As for the image coordinate system, X-axis points right, and Y-axis points downward, so Z-axis points forward.
             cameras[int(measurement_match.group('image_idx'))]['trackers'].setdefault(i, (float(measurement_match.group('X')), -1 * float(measurement_match.group('Y'))))

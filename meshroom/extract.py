@@ -8,13 +8,17 @@ from mathutils import Matrix, Vector, Euler
 
 def extract(properties, *args, **kargs):
     filepath = bpy.path.abspath(properties.filepath)
+    if not os.path.exists(filepath):
+        if not filepath:
+            raise AttributeError(f'Meshroom filepath must be provided')
+        raise AttributeError('Unable to locate Meshroom file:\n"{}"'.format(filepath))
 
     with open(filepath, 'r') as f:
         sfm = json.load(f)
 
     # TODO: read optional calibration from file
     if not ('views' in sfm and 'intrinsics' in sfm and 'poses' in sfm):
-        raise Exception('Not a valid cameras.sfm file, expected object with keys "view", "intrinsics" and "poses".')
+        raise AttributeError('Not a valid cameras.sfm file, expected object with keys:\n"view", "intrinsics" and "poses".')
 
     views = sfm['views']
     views_by_pose = dict([(k, list(g)) for k, g in groupby(sorted(views, key=lambda x: x['poseId']), lambda x: x['poseId'])])

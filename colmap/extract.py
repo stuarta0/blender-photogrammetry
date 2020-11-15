@@ -24,6 +24,8 @@ from ..utils import get_image_size
 """
 def extract(properties, *args, **kargs):
     dirpath = bpy.path.abspath(properties.dirpath)
+    if not dirpath:
+        raise AttributeError('COLMAP Workspace Directory must be provided.\nCameras, images and points3D files must exist.')
 
     # find the requisite files in either format
     requisites = ['cameras', 'images', 'points3D']
@@ -31,7 +33,7 @@ def extract(properties, *args, **kargs):
     
     for ext in extensions:
         if not ext:
-            raise Exception('COLMAP sparse reconstruction must contain a cameras, images and points3D file in .BIN or .TXT format')
+            raise AttributeError('COLMAP Workspace Directory must contain:\ncameras, images and points3D files.\nThese files must be in either .BIN or .TXT format.')
         elif len([f for f in os.listdir(dirpath) for c in requisites if f == f'{c}{ext}']) == 3:
             # found the correct set of files with this extension
             break
@@ -55,7 +57,11 @@ def extract(properties, *args, **kargs):
     }
 
     # https://colmap.github.io/format.html
-    ccameras, images, points3D = read_model(dirpath, ext=ext)
+    try:
+        ccameras, images, points3D = read_model(dirpath, ext=ext)
+    except Exception as ex:
+        raise AttributeError(f'Error when reading COLMAP workspace directory:\n{str(ex)}')
+    
     model = list(ccameras.values())[0]
     resolution = (model.width, model.height)
     data.setdefault('resolution', resolution)
