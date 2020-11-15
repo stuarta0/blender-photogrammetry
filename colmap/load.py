@@ -60,6 +60,9 @@ TextureMesh.exe --working-folder C:\..\workspace\mvs\ colmap_mesh.mvs --export-t
 
 def load(properties, data, *args, **kwargs):
     dirpath = bpy.path.abspath(properties.dirpath)
+    if not dirpath:
+        raise AttributeError('COLMAP Workspace Directory must be provided for output')
+
     overwrite = properties.overwrite
     binpath = get_binpath_for_module(os.path.realpath(__file__))
     env = os.environ.copy()

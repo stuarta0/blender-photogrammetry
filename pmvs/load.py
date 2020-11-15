@@ -22,6 +22,9 @@ def prepare_workspace(properties, data):
     :returns: Path to the PMVS options file
     """
     dirpath = bpy.path.abspath(properties.dirpath)
+    if not dirpath:
+        raise AttributeError('PMVS Workspace Directory must be provided for output')
+
     binpath = get_binpath_for_module(os.path.realpath(__file__))
     target = 'pmvs' + os.sep
 

@@ -30,6 +30,8 @@ def load(properties, data, *args, **kwargs):
     Takes the structure calculated from parsing the input and writes to the NVM file structure
     """
     dirpath = bpy.path.abspath(properties.dirpath)
+    if not dirpath:
+        raise AttributeError('VisualSfM Workspace Directory must be provided for output')
 
     cameras = data['cameras']
     camera_keys = list(cameras.keys())

@@ -11,7 +11,7 @@ def load(properties, data, *args, **kwargs):
     """
     scene = kwargs.get('scene', None)
     if not scene:
-        raise Exception('Scene required to load data in blender.load')
+        raise AttributeError('Scene required to load data in blender.load')
     prefs = get_prefs()
     collection = set_active_collection(**kwargs)
     camera_collection = set_active_collection(name=f'{prefs.collection_name or "Photogrammetry"}-Cameras', parent=collection, **kwargs)

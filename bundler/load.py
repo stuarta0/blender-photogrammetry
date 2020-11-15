@@ -29,6 +29,8 @@ def load(properties, data, *args, **kwargs):
     Takes the structure calculated from parsing the input and writes to the bundler file structure
     """
     dirpath = bpy.path.abspath(properties.dirpath)
+    if not dirpath:
+        raise AttributeError('Bundler Data Directory must be provided for output.\nImage files, bundle.out and list.txt will be written to this directory.')
 
     cameras = data['cameras']
     camera_keys = list(cameras.keys())
