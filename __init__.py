@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Dense Reconstruction",
     "author": "Stuart Attenborrow",
-    "version": (1, 1, 0),
+    "version": (1, 2, 0),
     "blender": (2, 80, 0),
     "location": "Properties > Scene",
     "description": "Provides the ability to generate dense point clouds using various photogrammetry tools, from inputs including Blender's motion tracking output",
@@ -56,7 +56,7 @@ for m in modules:
 
 class PHOTOGRAMMETRY_PT_preferences(AddonPreferences):
     bl_idname = __name__
-    collection_name = StringProperty(
+    collection_name: StringProperty(
         name='Collection Name',
         description='Name of the collection that will be created when adding photogrammetry objects',
         default='Photogrammetry'
@@ -142,7 +142,6 @@ attributes = {
     "output": EnumProperty(name='To', items=tuple(
         (key, exporter.name, exporter.description) for key, exporter in outputs.items()
     )),
-    "draw": draw_master
 }
 for key, importer in inputs.items():
     if importer.property_group:
@@ -154,7 +153,10 @@ for key, exporter in outputs.items():
 PHOTOGRAMMETRY_PG_master = type(
     "PHOTOGRAMMETRY_PG_master",
     (PropertyGroup,),
-    attributes
+    {
+        '__annotations__': attributes,
+        'draw': draw_master,
+    },
 )
 
 
