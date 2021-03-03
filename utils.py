@@ -1,4 +1,5 @@
 import os
+import re
 import bpy
 import numpy as np
 import platform
@@ -141,11 +142,8 @@ class CroppingPrettyPrinter(PrettyPrinter):
 
 
 def get_prefs():
-    try:
-        return bpy.context.preferences.addons['blender-photogrammetry'].preferences
-    except KeyError:
-        # naming difference between debugging session (blender-photogrammetry) and production (blender_photogrammetry)
-        return bpy.context.preferences.addons['blender_photogrammetry'].preferences
+    module_re = re.compile('^blender.photogrammetry.*$')
+    return next((m.preferences for m in bpy.context.preferences.addons if module_re.match(m.module)), None)
 
 
 def get_dominant_colours(image, num_colours=1, samples=1000):
